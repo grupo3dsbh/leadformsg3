@@ -24,7 +24,7 @@
         <div class="sidebar-section">
             <div class="sidebar-section-title">Principal</div>
 
-            <a href="/admin/dashboard" class="sidebar-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
+            <a href="/admin" class="sidebar-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
                 <span class="icon">&#9634;</span>
                 <span>Dashboard</span>
             </a>
@@ -54,7 +54,7 @@
                 <span class="icon">&#9881;</span>
                 <span>Funcionalidades</span>
             </a>
-            <a href="/admin/integrations" class="sidebar-link <?= $currentPage === 'integrations' ? 'active' : '' ?>">
+            <a href="/admin/features" class="sidebar-link <?= $currentPage === 'integrations' ? 'active' : '' ?>">
                 <span class="icon">&#128268;</span>
                 <span>Integracoes</span>
             </a>
@@ -76,7 +76,7 @@
                 <span class="icon">&#127760;</span>
                 <span>Traducoes</span>
             </a>
-            <a href="/admin/seo" class="sidebar-link <?= $currentPage === 'seo' ? 'active' : '' ?>">
+            <a href="/admin/settings/seo" class="sidebar-link <?= $currentPage === 'seo' ? 'active' : '' ?>">
                 <span class="icon">&#127912;</span>
                 <span>SEO &amp; Temas</span>
             </a>

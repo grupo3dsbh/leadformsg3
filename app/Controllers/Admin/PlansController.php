@@ -39,7 +39,7 @@ class PlansController extends Controller
 
         return $this->view('admin/plans/index', [
             'plans' => $plans,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -49,21 +49,24 @@ class PlansController extends Controller
     {
         return $this->view('admin/plans/create', [
             'plan' => [
-                'name'          => '',
-                'slug'          => '',
-                'description'   => '',
-                'price_monthly' => '',
-                'price_yearly'  => '',
-                'currency'      => 'USD',
-                'limits'        => '{}',
-                'features'      => '[]',
-                'integrations'  => '[]',
-                'is_featured'   => 0,
-                'is_active'     => 1,
-                'sort_order'    => 0,
-                'trial_days'    => 14,
+                'name'                 => '',
+                'slug'                 => '',
+                'description'          => '',
+                'price_monthly'        => '',
+                'price_yearly'         => '',
+                'currency'             => 'USD',
+                'max_forms'            => 5,
+                'max_entries_per_month' => 100,
+                'max_file_storage'     => 100,
+                'max_users'            => 1,
+                'max_file_size'        => 5,
+                'features'             => '[]',
+                'integrations'         => '[]',
+                'is_featured'          => 0,
+                'is_active'            => 1,
+                'sort_order'           => 0,
             ],
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -77,14 +80,13 @@ class PlansController extends Controller
             'price_monthly' => 'required|numeric|min:0',
             'price_yearly'  => 'required|numeric|min:0',
             'currency'      => 'required|string|max:3',
-            'trial_days'    => 'required|integer|min:0',
         ]);
 
         if (!empty($errors)) {
             return $this->view('admin/plans/create', [
                 'plan'   => $_POST,
                 'errors' => $errors,
-            ]);
+            ], 'layouts.admin');
         }
 
         // Check slug uniqueness
@@ -93,30 +95,31 @@ class PlansController extends Controller
             return $this->view('admin/plans/create', [
                 'plan'   => $_POST,
                 'errors' => ['slug' => 'This slug is already in use.'],
-            ]);
+            ], 'layouts.admin');
         }
 
-        // Parse limits JSON
-        $limits = $this->parseJsonField($_POST['limits'] ?? '{}');
         $features = $this->parseJsonField($_POST['features'] ?? '[]');
         $integrations = $this->parseJsonField($_POST['integrations'] ?? '[]');
 
         $this->planModel->create([
-            'name'          => trim($_POST['name']),
-            'slug'          => trim($_POST['slug']),
-            'description'   => trim($_POST['description'] ?? ''),
-            'price_monthly' => (float) $_POST['price_monthly'],
-            'price_yearly'  => (float) $_POST['price_yearly'],
-            'currency'      => strtoupper(trim($_POST['currency'])),
-            'limits'        => json_encode($limits),
-            'features'      => json_encode($features),
-            'integrations'  => json_encode($integrations),
-            'is_featured'   => !empty($_POST['is_featured']) ? 1 : 0,
-            'is_active'     => !empty($_POST['is_active']) ? 1 : 0,
-            'sort_order'    => (int) ($_POST['sort_order'] ?? 0),
-            'trial_days'    => (int) ($_POST['trial_days'] ?? 14),
-            'created_at'    => date('Y-m-d H:i:s'),
-            'updated_at'    => date('Y-m-d H:i:s'),
+            'name'                 => trim($_POST['name']),
+            'slug'                 => trim($_POST['slug']),
+            'description'          => trim($_POST['description'] ?? ''),
+            'price_monthly'        => (float) $_POST['price_monthly'],
+            'price_yearly'         => (float) $_POST['price_yearly'],
+            'currency'             => strtoupper(trim($_POST['currency'])),
+            'max_forms'            => (int) ($_POST['max_forms'] ?? 5),
+            'max_entries_per_month' => (int) ($_POST['max_entries_per_month'] ?? 100),
+            'max_file_storage'     => (int) ($_POST['max_file_storage'] ?? 100),
+            'max_users'            => (int) ($_POST['max_users'] ?? 1),
+            'max_file_size'        => (int) ($_POST['max_file_size'] ?? 5),
+            'features'             => json_encode($features),
+            'integrations'         => json_encode($integrations),
+            'is_featured'          => !empty($_POST['is_featured']) ? 1 : 0,
+            'is_active'            => !empty($_POST['is_active']) ? 1 : 0,
+            'sort_order'           => (int) ($_POST['sort_order'] ?? 0),
+            'created_at'           => date('Y-m-d H:i:s'),
+            'updated_at'           => date('Y-m-d H:i:s'),
         ]);
 
         return $this->redirect('/admin/plans', ['success' => 'Plan created successfully.']);
@@ -145,7 +148,7 @@ class PlansController extends Controller
         return $this->view('admin/plans/edit', [
             'plan'        => $plan,
             'tenantCount' => $tenantCount,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -165,14 +168,13 @@ class PlansController extends Controller
             'price_monthly' => 'required|numeric|min:0',
             'price_yearly'  => 'required|numeric|min:0',
             'currency'      => 'required|string|max:3',
-            'trial_days'    => 'required|integer|min:0',
         ]);
 
         if (!empty($errors)) {
             return $this->view('admin/plans/edit', [
                 'plan'   => array_merge($plan, $_POST),
                 'errors' => $errors,
-            ]);
+            ], 'layouts.admin');
         }
 
         // Check slug uniqueness excluding current
@@ -181,28 +183,30 @@ class PlansController extends Controller
             return $this->view('admin/plans/edit', [
                 'plan'   => array_merge($plan, $_POST),
                 'errors' => ['slug' => 'This slug is already in use by another plan.'],
-            ]);
+            ], 'layouts.admin');
         }
 
-        $limits       = $this->parseJsonField($_POST['limits'] ?? $plan['limits']);
         $features     = $this->parseJsonField($_POST['features'] ?? $plan['features']);
         $integrations = $this->parseJsonField($_POST['integrations'] ?? $plan['integrations']);
 
         $this->planModel->update((int) $id, [
-            'name'          => trim($_POST['name']),
-            'slug'          => trim($_POST['slug']),
-            'description'   => trim($_POST['description'] ?? ''),
-            'price_monthly' => (float) $_POST['price_monthly'],
-            'price_yearly'  => (float) $_POST['price_yearly'],
-            'currency'      => strtoupper(trim($_POST['currency'])),
-            'limits'        => json_encode($limits),
-            'features'      => json_encode($features),
-            'integrations'  => json_encode($integrations),
-            'is_featured'   => !empty($_POST['is_featured']) ? 1 : 0,
-            'is_active'     => isset($_POST['is_active']) ? (int) $_POST['is_active'] : (int) $plan['is_active'],
-            'sort_order'    => (int) ($_POST['sort_order'] ?? $plan['sort_order']),
-            'trial_days'    => (int) ($_POST['trial_days'] ?? $plan['trial_days']),
-            'updated_at'    => date('Y-m-d H:i:s'),
+            'name'                 => trim($_POST['name']),
+            'slug'                 => trim($_POST['slug']),
+            'description'          => trim($_POST['description'] ?? ''),
+            'price_monthly'        => (float) $_POST['price_monthly'],
+            'price_yearly'         => (float) $_POST['price_yearly'],
+            'currency'             => strtoupper(trim($_POST['currency'])),
+            'max_forms'            => (int) ($_POST['max_forms'] ?? $plan['max_forms']),
+            'max_entries_per_month' => (int) ($_POST['max_entries_per_month'] ?? $plan['max_entries_per_month']),
+            'max_file_storage'     => (int) ($_POST['max_file_storage'] ?? $plan['max_file_storage']),
+            'max_users'            => (int) ($_POST['max_users'] ?? $plan['max_users']),
+            'max_file_size'        => (int) ($_POST['max_file_size'] ?? $plan['max_file_size']),
+            'features'             => json_encode($features),
+            'integrations'         => json_encode($integrations),
+            'is_featured'          => !empty($_POST['is_featured']) ? 1 : 0,
+            'is_active'            => isset($_POST['is_active']) ? (int) $_POST['is_active'] : (int) $plan['is_active'],
+            'sort_order'           => (int) ($_POST['sort_order'] ?? $plan['sort_order']),
+            'updated_at'           => date('Y-m-d H:i:s'),
         ]);
 
         return $this->redirect('/admin/plans', ['success' => 'Plan updated successfully.']);

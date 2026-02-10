@@ -37,7 +37,7 @@ class AuditController extends Controller
         $params = [];
 
         if ($search !== '') {
-            $where[]          = '(al.action LIKE :search OR al.metadata LIKE :search OR al.ip_address LIKE :search)';
+            $where[]          = '(al.action LIKE :search OR al.new_values LIKE :search OR al.ip_address LIKE :search)';
             $params['search'] = "%{$search}%";
         }
 
@@ -82,8 +82,7 @@ class AuditController extends Controller
         // Fetch logs with user and tenant info
         $sql = "SELECT al.*,
                        u.email      AS user_email,
-                       u.first_name AS user_first_name,
-                       u.last_name  AS user_last_name,
+                       u.name       AS user_name,
                        t.name       AS tenant_name
                   FROM audit_logs al
                   LEFT JOIN users u ON u.id = al.user_id
@@ -101,9 +100,9 @@ class AuditController extends Controller
         $stmt->execute();
         $logs = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Decode metadata
+        // Decode new_values
         foreach ($logs as &$log) {
-            $log['decoded_metadata'] = json_decode($log['metadata'] ?? '{}', true) ?: [];
+            $log['decoded_data'] = json_decode($log['new_values'] ?? '{}', true) ?: [];
         }
         unset($log);
 
@@ -137,7 +136,7 @@ class AuditController extends Controller
             'dateFrom'    => $dateFrom,
             'dateTo'      => $dateTo,
             'sortDir'     => $sortDir,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -150,8 +149,7 @@ class AuditController extends Controller
         $stmt = $db->prepare(
             "SELECT al.*,
                     u.email      AS user_email,
-                    u.first_name AS user_first_name,
-                    u.last_name  AS user_last_name,
+                    u.name       AS user_name,
                     u.role       AS user_role,
                     t.name       AS tenant_name,
                     t.slug       AS tenant_slug
@@ -167,7 +165,7 @@ class AuditController extends Controller
             return $this->redirect('/admin/audit', ['error' => 'Audit log entry not found.']);
         }
 
-        $log['decoded_metadata'] = json_decode($log['metadata'] ?? '{}', true) ?: [];
+        $log['decoded_data'] = json_decode($log['new_values'] ?? '{}', true) ?: [];
 
         // Try to load the related entity
         $relatedEntity = null;
@@ -209,7 +207,7 @@ class AuditController extends Controller
             'log'           => $log,
             'relatedEntity' => $relatedEntity,
             'contextLogs'   => $contextLogs,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**

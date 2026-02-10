@@ -43,7 +43,7 @@ class TranslationsController extends Controller
         // Get the default locale for completeness checking
         $db = $this->db();
         $defaultLocaleStmt = $db->prepare(
-            "SELECT setting_value FROM settings WHERE setting_key = 'default_locale' LIMIT 1"
+            "SELECT `value` FROM system_settings WHERE `key` = 'default_locale' LIMIT 1"
         );
         $defaultLocaleStmt->execute();
         $defaultLocale = $defaultLocaleStmt->fetchColumn() ?: 'en';
@@ -82,7 +82,7 @@ class TranslationsController extends Controller
             'matrix'        => $matrix,
             'defaultLocale' => $defaultLocale,
             'completeness'  => $completeness,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -99,7 +99,7 @@ class TranslationsController extends Controller
         // Load the default locale translations as reference
         $db = $this->db();
         $defaultLocaleStmt = $db->prepare(
-            "SELECT setting_value FROM settings WHERE setting_key = 'default_locale' LIMIT 1"
+            "SELECT `value` FROM system_settings WHERE `key` = 'default_locale' LIMIT 1"
         );
         $defaultLocaleStmt->execute();
         $defaultLocale = $defaultLocaleStmt->fetchColumn() ?: 'en';
@@ -128,7 +128,7 @@ class TranslationsController extends Controller
             'group'        => $group,
             'translations' => $combined,
             'defaultLocale' => $defaultLocale,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**

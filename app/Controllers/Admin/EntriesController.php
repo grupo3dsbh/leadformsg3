@@ -40,8 +40,9 @@ class EntriesController extends Controller
         $params = [];
 
         if ($search !== '') {
-            $where[]          = 'fe.data LIKE :search';
-            $params['search'] = "%{$search}%";
+            $where[]          = '(f.title LIKE :search OR t.name LIKE :search2)';
+            $params['search']  = "%{$search}%";
+            $params['search2'] = "%{$search}%";
         }
 
         if ($tenantId !== '') {
@@ -97,9 +98,9 @@ class EntriesController extends Controller
         $stmt->execute();
         $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Decode entry data for preview
+        // Entry data is stored in entry_values table, not in entries.data
         foreach ($entries as &$entry) {
-            $entry['decoded_data'] = json_decode($entry['data'] ?? '{}', true) ?: [];
+            $entry['decoded_data'] = [];
         }
         unset($entry);
 
@@ -122,7 +123,7 @@ class EntriesController extends Controller
             'dateTo'     => $dateTo,
             'sortBy'     => $sortBy,
             'sortDir'    => $sortDir,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -135,7 +136,6 @@ class EntriesController extends Controller
         $stmt = $db->prepare(
             "SELECT fe.*,
                     f.title  AS form_title,
-                    f.fields AS form_fields,
                     t.name   AS tenant_name,
                     t.id     AS tenant_id
                FROM entries fe
@@ -150,25 +150,30 @@ class EntriesController extends Controller
             return $this->redirect('/admin/entries', ['error' => 'Entry not found.']);
         }
 
-        $entryData  = json_decode($entry['data'] ?? '{}', true) ?: [];
-        $formFields = json_decode($entry['form_fields'] ?? '[]', true) ?: [];
+        // Entry data is stored in entry_values table
+        $valuesStmt = $db->prepare(
+            "SELECT ev.field_id, ev.field_type, ev.value, ff.label
+               FROM entry_values ev
+               LEFT JOIN form_fields ff ON ff.id = ev.field_id
+              WHERE ev.entry_id = :eid
+              ORDER BY ff.sort_order ASC"
+        );
+        $valuesStmt->execute(['eid' => (int) $id]);
+        $entryValues = $valuesStmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Build field-value pairs for display
         $fieldValues = [];
-        foreach ($formFields as $field) {
-            $fieldName  = $field['name'] ?? $field['key'] ?? '';
-            $fieldLabel = $field['label'] ?? $fieldName;
+        foreach ($entryValues as $ev) {
             $fieldValues[] = [
-                'label' => $fieldLabel,
-                'name'  => $fieldName,
-                'type'  => $field['type'] ?? 'text',
-                'value' => $entryData[$fieldName] ?? '',
+                'label' => $ev['label'] ?? 'Campo ' . $ev['field_id'],
+                'name'  => 'field_' . $ev['field_id'],
+                'type'  => $ev['field_type'] ?? 'text',
+                'value' => $ev['value'] ?? '',
             ];
         }
 
         // Notes on this entry
         $notes = $db->prepare(
-            "SELECT n.*, u.first_name, u.last_name, u.email
+            "SELECT n.*, u.name AS user_name, u.email
                FROM entry_notes n
                LEFT JOIN users u ON u.id = n.user_id
               WHERE n.entry_id = :eid
@@ -179,11 +184,11 @@ class EntriesController extends Controller
 
         return $this->view('admin/entries/show', [
             'entry'       => $entry,
-            'entryData'   => $entryData,
-            'formFields'  => $formFields,
+            'entryData'   => [],
+            'formFields'  => [],
             'fieldValues' => $fieldValues,
             'notes'       => $notes,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -224,7 +229,7 @@ class EntriesController extends Controller
 
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $sql = "SELECT fe.id, fe.form_id, fe.data, fe.ip_address, fe.user_agent, fe.created_at,
+        $sql = "SELECT fe.id, fe.form_id, fe.status, fe.ip_address, fe.created_at,
                        f.title AS form_title,
                        t.name  AS tenant_name
                   FROM entries fe
@@ -238,28 +243,6 @@ class EntriesController extends Controller
         $stmt->execute($params);
         $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Collect all unique field keys across entries
-        $allKeys = [];
-        $rows    = [];
-        foreach ($entries as $entry) {
-            $decoded = json_decode($entry['data'] ?? '{}', true) ?: [];
-            foreach (array_keys($decoded) as $key) {
-                $allKeys[$key] = true;
-            }
-            $rows[] = [
-                'meta' => [
-                    'id'          => $entry['id'],
-                    'form_title'  => $entry['form_title'],
-                    'tenant_name' => $entry['tenant_name'],
-                    'ip_address'  => $entry['ip_address'],
-                    'created_at'  => $entry['created_at'],
-                ],
-                'data' => $decoded,
-            ];
-        }
-
-        $fieldKeys = array_keys($allKeys);
-
         // CSV export
         $filename = 'entries_export_' . date('Y-m-d_His') . '.csv';
 
@@ -269,26 +252,18 @@ class EntriesController extends Controller
         $output = fopen('php://output', 'w');
 
         // Header row
-        $headers = ['ID', 'Form', 'Tenant', 'IP Address', 'Submitted At'];
-        $headers = array_merge($headers, $fieldKeys);
-        fputcsv($output, $headers);
+        fputcsv($output, ['ID', 'Form', 'Tenant', 'Status', 'IP Address', 'Submitted At']);
 
         // Data rows
-        foreach ($rows as $row) {
-            $line = [
-                $row['meta']['id'],
-                $row['meta']['form_title'],
-                $row['meta']['tenant_name'],
-                $row['meta']['ip_address'],
-                $row['meta']['created_at'],
-            ];
-
-            foreach ($fieldKeys as $key) {
-                $value = $row['data'][$key] ?? '';
-                $line[] = is_array($value) ? json_encode($value) : (string) $value;
-            }
-
-            fputcsv($output, $line);
+        foreach ($entries as $entry) {
+            fputcsv($output, [
+                $entry['id'],
+                $entry['form_title'],
+                $entry['tenant_name'],
+                $entry['status'],
+                $entry['ip_address'],
+                $entry['created_at'],
+            ]);
         }
 
         fclose($output);

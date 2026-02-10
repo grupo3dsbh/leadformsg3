@@ -18,6 +18,11 @@ abstract class Controller
      */
     private static ?string $viewBasePath = null;
 
+    public function __construct()
+    {
+        // Allow child controllers to call parent::__construct()
+    }
+
     // ------------------------------------------------------------------
     // Database helper
     // ------------------------------------------------------------------

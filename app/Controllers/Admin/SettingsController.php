@@ -23,7 +23,7 @@ class SettingsController extends Controller
 
         return $this->view('admin/settings/index', [
             'settings' => $settings,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -44,7 +44,7 @@ class SettingsController extends Controller
             return $this->view('admin/settings/index', [
                 'settings' => array_merge($this->loadSettings(), $_POST),
                 'errors'   => $errors,
-            ]);
+            ], 'layouts.admin');
         }
 
         $this->saveSetting('app_timezone', $_POST['app_timezone']);
@@ -69,7 +69,7 @@ class SettingsController extends Controller
 
         return $this->view('admin/settings/seo', [
             'settings' => $settings,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -86,7 +86,7 @@ class SettingsController extends Controller
             return $this->view('admin/settings/seo', [
                 'settings' => $_POST,
                 'errors'   => $errors,
-            ]);
+            ], 'layouts.admin');
         }
 
         $this->saveSetting('seo_title', trim($_POST['seo_title'] ?? ''));
@@ -110,7 +110,7 @@ class SettingsController extends Controller
 
         return $this->view('admin/settings/theme', [
             'settings' => $settings,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -144,7 +144,7 @@ class SettingsController extends Controller
 
         return $this->view('admin/settings/ai', [
             'settings' => $settings,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -164,7 +164,7 @@ class SettingsController extends Controller
             return $this->view('admin/settings/ai', [
                 'settings' => $_POST,
                 'errors'   => $errors,
-            ]);
+            ], 'layouts.admin');
         }
 
         $this->saveSetting('ai_provider', trim($_POST['ai_provider']));
@@ -189,7 +189,7 @@ class SettingsController extends Controller
 
         return $this->view('admin/settings/api', [
             'settings' => $settings,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -207,7 +207,7 @@ class SettingsController extends Controller
             return $this->view('admin/settings/api', [
                 'settings' => $_POST,
                 'errors'   => $errors,
-            ]);
+            ], 'layouts.admin');
         }
 
         $this->saveSetting('api_enabled', !empty($_POST['api_enabled']) ? '1' : '0');
@@ -234,7 +234,7 @@ class SettingsController extends Controller
 
         return $this->view('admin/settings/dev', [
             'settings' => $settings,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -266,7 +266,7 @@ class SettingsController extends Controller
 
         return $this->view('admin/settings/site', [
             'settings' => $settings,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -284,7 +284,7 @@ class SettingsController extends Controller
             return $this->view('admin/settings/site', [
                 'settings' => $_POST,
                 'errors'   => $errors,
-            ]);
+            ], 'layouts.admin');
         }
 
         $this->saveSetting('site_name', trim($_POST['site_name']));
@@ -356,17 +356,17 @@ class SettingsController extends Controller
         $db = $this->db();
 
         if ($prefix !== '') {
-            $stmt = $db->prepare("SELECT setting_key, setting_value FROM settings WHERE setting_key LIKE :prefix");
+            $stmt = $db->prepare("SELECT `key`, `value` FROM system_settings WHERE `key` LIKE :prefix");
             $stmt->execute(['prefix' => $prefix . '%']);
         } else {
-            $stmt = $db->query("SELECT setting_key, setting_value FROM settings");
+            $stmt = $db->query("SELECT `key`, `value` FROM system_settings");
         }
 
         $rows     = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         $settings = [];
 
         foreach ($rows as $row) {
-            $settings[$row['setting_key']] = $row['setting_value'];
+            $settings[$row['key']] = $row['value'];
         }
 
         return $settings;
@@ -377,7 +377,7 @@ class SettingsController extends Controller
      */
     private function getSetting(string $key, string $default = ''): string
     {
-        $stmt = $this->db()->prepare("SELECT setting_value FROM settings WHERE setting_key = :key LIMIT 1");
+        $stmt = $this->db()->prepare("SELECT `value` FROM system_settings WHERE `key` = :key LIMIT 1");
         $stmt->execute(['key' => $key]);
         $value = $stmt->fetchColumn();
 
@@ -391,9 +391,9 @@ class SettingsController extends Controller
     {
         $db   = $this->db();
         $stmt = $db->prepare(
-            "INSERT INTO settings (setting_key, setting_value, updated_at)
+            "INSERT INTO system_settings (`key`, `value`, updated_at)
              VALUES (:key, :value, NOW())
-             ON DUPLICATE KEY UPDATE setting_value = :value2, updated_at = NOW()"
+             ON DUPLICATE KEY UPDATE `value` = :value2, updated_at = NOW()"
         );
         $stmt->execute([
             'key'    => $key,

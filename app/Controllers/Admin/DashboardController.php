@@ -51,14 +51,14 @@ class DashboardController extends Controller
         $monthlyRevenue = (float) $db->query(
             "SELECT COALESCE(SUM(amount), 0)
                FROM payments
-              WHERE status = 'completed'
+              WHERE status = 'succeeded'
                 AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')"
         )->fetchColumn();
 
         $yearlyRevenue = (float) $db->query(
             "SELECT COALESCE(SUM(amount), 0)
                FROM payments
-              WHERE status = 'completed'
+              WHERE status = 'succeeded'
                 AND created_at >= DATE_FORMAT(NOW(), '%Y-01-01')"
         )->fetchColumn();
 
@@ -90,7 +90,7 @@ class DashboardController extends Controller
             "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month,
                     COALESCE(SUM(amount), 0) AS total
                FROM payments
-              WHERE status = 'completed'
+              WHERE status = 'succeeded'
                 AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
               GROUP BY month
               ORDER BY month ASC"

@@ -25,10 +25,10 @@ class FeaturesController extends Controller
             "SELECT f.*,
                     (SELECT COUNT(DISTINCT i.tenant_id)
                        FROM integrations i
-                      WHERE i.type = f.slug AND i.is_active = 1
+                      WHERE i.type = f.slug AND i.status = 'active'
                     ) AS active_tenant_count
                FROM features f
-              ORDER BY f.category ASC, f.sort_order ASC, f.name ASC"
+              ORDER BY f.category ASC, f.name ASC"
         )->fetchAll(\PDO::FETCH_ASSOC);
 
         // Group by category for display
@@ -36,9 +36,6 @@ class FeaturesController extends Controller
         foreach ($features as $feature) {
             $category = $feature['category'] ?? 'general';
             $grouped[$category][] = $feature;
-
-            // Decode settings JSON
-            $feature['decoded_settings'] = json_decode($feature['settings'] ?? '{}', true) ?: [];
         }
 
         // Available categories summary
@@ -54,7 +51,7 @@ class FeaturesController extends Controller
             'features'   => $features,
             'grouped'    => $grouped,
             'categories' => $categories,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -75,7 +72,7 @@ class FeaturesController extends Controller
         $newStatus = $feature['is_active'] ? 0 : 1;
 
         $db->prepare(
-            "UPDATE features SET is_active = :status, updated_at = NOW() WHERE id = :id"
+            "UPDATE features SET is_active = :status WHERE id = :id"
         )->execute([
             'status' => $newStatus,
             'id'     => (int) $id,
@@ -126,35 +123,19 @@ class FeaturesController extends Controller
                 'feature'  => $feature,
                 'errors'   => $errors,
                 'editId'   => (int) $id,
-            ]);
-        }
-
-        // Build settings from posted configuration fields
-        $currentSettings = json_decode($feature['settings'] ?? '{}', true) ?: [];
-        $newSettings     = $_POST['settings'] ?? [];
-
-        if (is_array($newSettings)) {
-            $mergedSettings = array_merge($currentSettings, $newSettings);
-        } else {
-            $parsed = json_decode($newSettings, true);
-            $mergedSettings = json_last_error() === JSON_ERROR_NONE ? $parsed : $currentSettings;
+            ], 'layouts.admin');
         }
 
         $db->prepare(
             "UPDATE features
                 SET name        = :name,
                     description = :description,
-                    settings    = :settings,
-                    is_active   = :is_active,
-                    sort_order  = :sort_order,
-                    updated_at  = NOW()
+                    is_active   = :is_active
               WHERE id = :id"
         )->execute([
             'name'        => trim($_POST['name']),
             'description' => trim($_POST['description'] ?? ''),
-            'settings'    => json_encode($mergedSettings),
             'is_active'   => !empty($_POST['is_active']) ? 1 : 0,
-            'sort_order'  => (int) ($_POST['sort_order'] ?? $feature['sort_order'] ?? 0),
             'id'          => (int) $id,
         ]);
 
@@ -174,7 +155,7 @@ class FeaturesController extends Controller
     private function logAudit(string $action, string $entity, int $entityId, array $metadata = []): void
     {
         $this->db()->prepare(
-            "INSERT INTO audit_logs (user_id, tenant_id, action, entity_type, entity_id, metadata, ip_address, created_at)
+            "INSERT INTO audit_logs (user_id, tenant_id, action, entity_type, entity_id, new_values, ip_address, created_at)
              VALUES (:uid, NULL, :action, :entity, :eid, :meta, :ip, NOW())"
         )->execute([
             'uid'    => auth()['id'] ?? null,

@@ -49,9 +49,9 @@ class FormsController extends Controller
         }
 
         if ($status === 'published') {
-            $where[] = 'f.is_published = 1';
+            $where[] = "f.status = 'published'";
         } elseif ($status === 'draft') {
-            $where[] = 'f.is_published = 0';
+            $where[] = "f.status = 'draft'";
         }
 
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -99,7 +99,7 @@ class FormsController extends Controller
             'status'     => $status,
             'sortBy'     => $sortBy,
             'sortDir'    => $sortDir,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -150,8 +150,8 @@ class FormsController extends Controller
         $recentEntries->execute(['fid' => (int) $id]);
         $recentEntries = $recentEntries->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Form fields (stored as JSON in the form record)
-        $fields = json_decode($form['fields'] ?? '[]', true) ?: [];
+        // Form fields are stored in form_fields table, not in the form record
+        $fields = [];
 
         return $this->view('admin/forms/show', [
             'form'          => $form,
@@ -159,7 +159,7 @@ class FormsController extends Controller
             'entryCount'    => $entryCount,
             'dailyEntries'  => $dailyEntries,
             'recentEntries' => $recentEntries,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -191,11 +191,6 @@ class FormsController extends Controller
         $where  = ['fe.form_id = :fid'];
         $params = ['fid' => (int) $id];
 
-        if ($search !== '') {
-            $where[]          = 'fe.data LIKE :search';
-            $params['search'] = "%{$search}%";
-        }
-
         $whereClause = 'WHERE ' . implode(' AND ', $where);
 
         // Total count
@@ -219,13 +214,14 @@ class FormsController extends Controller
         $stmt->execute();
         $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Decode entry data
+        // Entry data is stored in entry_values table, not in entries.data
         foreach ($entries as &$entry) {
-            $entry['decoded_data'] = json_decode($entry['data'] ?? '{}', true) ?: [];
+            $entry['decoded_data'] = [];
         }
         unset($entry);
 
-        $fields = json_decode($form['fields'] ?? '[]', true) ?: [];
+        // Form fields are stored in form_fields table, not in the form record
+        $fields = [];
 
         return $this->view('admin/forms/entries', [
             'form'       => $form,
@@ -236,6 +232,6 @@ class FormsController extends Controller
             'perPage'    => $perPage,
             'totalPages' => (int) ceil($total / $perPage),
             'search'     => $search,
-        ]);
+        ], 'layouts.admin');
     }
 }

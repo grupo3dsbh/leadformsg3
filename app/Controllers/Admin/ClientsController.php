@@ -111,7 +111,7 @@ class ClientsController extends Controller
             'planId'     => $planId,
             'sortBy'     => $sortBy,
             'sortDir'    => $sortDir,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -126,8 +126,8 @@ class ClientsController extends Controller
             return $this->redirect('/admin/clients', ['error' => 'Client not found.']);
         }
 
-        // Owner info
-        $owner = $tenant['owner_id'] ? $this->userModel->find((int) $tenant['owner_id']) : null;
+        // Owner info (tenants table has no owner_id column)
+        $owner = null;
 
         // Plan info
         $plan = $tenant['plan_id']
@@ -255,9 +255,9 @@ class ClientsController extends Controller
             'slug'               => trim($_POST['slug']),
             'domain'             => trim($_POST['domain'] ?? '') ?: null,
             'plan_id'            => (int) $_POST['plan_id'],
-            'storage_limit_bytes' => isset($_POST['storage_limit_mb'])
+            'max_storage' => isset($_POST['storage_limit_mb'])
                 ? (int) $_POST['storage_limit_mb'] * 1048576
-                : (int) $tenant['storage_limit_bytes'],
+                : (int) $tenant['max_storage'],
             'updated_at'         => date('Y-m-d H:i:s'),
         ]);
 
@@ -329,19 +329,12 @@ class ClientsController extends Controller
             return $this->redirect('/admin/clients', ['error' => 'Client not found.']);
         }
 
-        // Find the tenant owner
-        $owner = $tenant['owner_id']
-            ? $this->userModel->find((int) $tenant['owner_id'])
-            : null;
-
-        if (!$owner) {
-            // Fallback: find any admin user on this tenant
-            $stmt = $this->db()->prepare(
-                "SELECT * FROM users WHERE tenant_id = :tid AND role IN ('admin','owner') ORDER BY id ASC LIMIT 1"
-            );
-            $stmt->execute(['tid' => (int) $id]);
-            $owner = $stmt->fetch(\PDO::FETCH_ASSOC);
-        }
+        // Find the tenant admin/owner user directly (tenants table has no owner_id column)
+        $stmt = $this->db()->prepare(
+            "SELECT * FROM users WHERE tenant_id = :tid AND role IN ('admin','owner') ORDER BY id ASC LIMIT 1"
+        );
+        $stmt->execute(['tid' => (int) $id]);
+        $owner = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$owner) {
             return $this->redirect("/admin/clients/{$id}", [
@@ -429,7 +422,7 @@ class ClientsController extends Controller
     private function logAudit(string $action, string $entity, int $entityId, array $metadata = []): void
     {
         $this->db()->prepare(
-            "INSERT INTO audit_logs (user_id, tenant_id, action, entity_type, entity_id, metadata, ip_address, created_at)
+            "INSERT INTO audit_logs (user_id, tenant_id, action, entity_type, entity_id, new_values, ip_address, created_at)
              VALUES (:uid, :tid, :action, :entity, :eid, :meta, :ip, NOW())"
         )->execute([
             'uid'    => auth()['id'] ?? null,
