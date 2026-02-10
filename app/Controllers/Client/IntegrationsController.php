@@ -128,8 +128,8 @@ class IntegrationsController extends Controller
             ]);
         } else {
             $db->prepare(
-                "INSERT INTO integrations (tenant_id, type, config, is_active, created_at, updated_at)
-                 VALUES (:tid, :type, :config, 1, NOW(), NOW())"
+                "INSERT INTO integrations (tenant_id, type, name, settings, status, created_at, updated_at)
+                 VALUES (:tid, :type, :type, :config, 'active', NOW(), NOW())"
             )->execute([
                 'tid'    => $tenantId,
                 'type'   => $type,
@@ -153,10 +153,10 @@ class IntegrationsController extends Controller
             return $this->redirect('/client/integrations', ['error' => 'Integration not found.']);
         }
 
-        $newStatus = $integration['is_active'] ? 0 : 1;
+        $newStatus = ($integration['status'] ?? '') === 'active' ? 'inactive' : 'active';
 
         $this->db()->prepare(
-            "UPDATE integrations SET is_active = :status, updated_at = NOW() WHERE id = :id"
+            "UPDATE integrations SET status = :status, updated_at = NOW() WHERE id = :id"
         )->execute([
             'status' => $newStatus,
             'id'     => (int) $id,

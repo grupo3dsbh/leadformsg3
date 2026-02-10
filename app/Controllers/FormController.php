@@ -491,7 +491,7 @@ class FormController extends Controller
         try {
             $db   = \Core\Database::getInstance();
             $stmt = $db->prepare(
-                'SELECT * FROM form_fields WHERE form_id = :form_id AND is_active = 1 ORDER BY sort_order ASC'
+                'SELECT * FROM form_fields WHERE form_id = :form_id ORDER BY sort_order ASC'
             );
             $stmt->execute(['form_id' => $formId]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
@@ -942,7 +942,7 @@ class FormController extends Controller
         try {
             $db   = \Core\Database::getInstance();
             $stmt = $db->prepare(
-                'SELECT * FROM integrations WHERE form_id = :form_id AND is_active = 1'
+                'SELECT i.* FROM integrations i JOIN form_integrations fi ON fi.integration_id = i.id WHERE fi.form_id = :form_id AND i.status = \'active\''
             );
             $stmt->execute(['form_id' => (int) $form['id']]);
             $integrations = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];

@@ -221,7 +221,7 @@ class AuditController extends Controller
             'tenants'       => 'tenants',
             'users'         => 'users',
             'forms'         => 'forms',
-            'form_entries'  => 'form_entries',
+            'entries'  => 'entries',
             'plans'         => 'plans',
             'subscriptions' => 'subscriptions',
             'payments'      => 'payments',

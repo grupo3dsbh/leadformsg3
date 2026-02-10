@@ -40,7 +40,7 @@ class DashboardController extends Controller
 
         $stmt = $db->prepare(
             "SELECT COUNT(*)
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE f.tenant_id = :tid"
         );
@@ -50,7 +50,7 @@ class DashboardController extends Controller
         // Entries this month
         $stmt = $db->prepare(
             "SELECT COUNT(*)
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE f.tenant_id = :tid
                 AND fe.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')"
@@ -61,7 +61,7 @@ class DashboardController extends Controller
         // Entries today
         $stmt = $db->prepare(
             "SELECT COUNT(*)
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE f.tenant_id = :tid
                 AND DATE(fe.created_at) = CURDATE()"
@@ -73,7 +73,7 @@ class DashboardController extends Controller
 
         $stmt = $db->prepare(
             "SELECT DATE(fe.created_at) AS day, COUNT(*) AS count
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE f.tenant_id = :tid
                 AND fe.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
@@ -90,7 +90,7 @@ class DashboardController extends Controller
                     COUNT(fe.id) AS entry_count,
                     MAX(fe.created_at) AS last_entry_at
                FROM forms f
-               LEFT JOIN form_entries fe ON fe.form_id = f.id
+               LEFT JOIN entries fe ON fe.form_id = f.id
               WHERE f.tenant_id = :tid
               GROUP BY f.id, f.title, f.slug, f.is_published
               ORDER BY entry_count DESC
@@ -105,7 +105,7 @@ class DashboardController extends Controller
             "SELECT f.id, f.title, f.views, COUNT(fe.id) AS entries,
                     CASE WHEN f.views > 0 THEN ROUND((COUNT(fe.id) / f.views) * 100, 2) ELSE 0 END AS conversion_rate
                FROM forms f
-               LEFT JOIN form_entries fe ON fe.form_id = f.id
+               LEFT JOIN entries fe ON fe.form_id = f.id
               WHERE f.tenant_id = :tid AND f.views > 0
               GROUP BY f.id, f.title, f.views
               ORDER BY conversion_rate DESC
@@ -119,7 +119,7 @@ class DashboardController extends Controller
         $stmt = $db->prepare(
             "SELECT fe.id, fe.data, fe.created_at, fe.ip_address,
                     f.title AS form_title, f.id AS form_id
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE f.tenant_id = :tid
               ORDER BY fe.created_at DESC

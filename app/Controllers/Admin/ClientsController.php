@@ -78,7 +78,7 @@ class ClientsController extends Controller
         $sql = "SELECT t.*, p.name AS plan_name,
                        (SELECT COUNT(*) FROM forms WHERE tenant_id = t.id) AS form_count,
                        (SELECT COUNT(*) FROM users WHERE tenant_id = t.id) AS user_count,
-                       (SELECT COUNT(*) FROM form_entries fe
+                       (SELECT COUNT(*) FROM entries fe
                           JOIN forms f ON f.id = fe.form_id
                          WHERE f.tenant_id = t.id) AS entry_count
                   FROM tenants t
@@ -141,7 +141,7 @@ class ClientsController extends Controller
 
         // Forms
         $forms = $db->prepare(
-            "SELECT f.*, (SELECT COUNT(*) FROM form_entries WHERE form_id = f.id) AS entry_count
+            "SELECT f.*, (SELECT COUNT(*) FROM entries WHERE form_id = f.id) AS entry_count
                FROM forms f WHERE f.tenant_id = :tid ORDER BY f.created_at DESC"
         );
         $forms->execute(['tid' => (int) $id]);
@@ -150,7 +150,7 @@ class ClientsController extends Controller
         // Recent entries
         $recentEntries = $db->prepare(
             "SELECT fe.*, f.title AS form_title
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE f.tenant_id = :tid
               ORDER BY fe.created_at DESC
@@ -386,7 +386,7 @@ class ClientsController extends Controller
 
         // Delete form entries for all tenant forms
         $db->prepare(
-            "DELETE fe FROM form_entries fe
+            "DELETE fe FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE f.tenant_id = :tid"
         )->execute(['tid' => $tenantId]);

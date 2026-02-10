@@ -84,7 +84,7 @@ class FeaturesController extends Controller
         // If disabling, optionally deactivate all tenant integrations of this type
         if ($newStatus === 0 && !empty($_POST['cascade_disable'])) {
             $db->prepare(
-                "UPDATE integrations SET is_active = 0, updated_at = NOW() WHERE type = :slug"
+                "UPDATE integrations SET status = 'inactive', updated_at = NOW() WHERE type = :slug"
             )->execute(['slug' => $feature['slug']]);
         }
 

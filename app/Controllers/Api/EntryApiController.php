@@ -124,7 +124,7 @@ class EntryApiController extends Controller
         // Check form settings for entry limits
         $formSettings = json_decode($form['settings'] ?? '{}', true) ?: [];
         if (!empty($formSettings['max_entries'])) {
-            $entryCountStmt = $db->prepare("SELECT COUNT(*) FROM form_entries WHERE form_id = :fid");
+            $entryCountStmt = $db->prepare("SELECT COUNT(*) FROM entries WHERE form_id = :fid");
             $entryCountStmt->execute(['fid' => (int) $form['id']]);
             $currentCount = (int) $entryCountStmt->fetchColumn();
 
@@ -158,7 +158,7 @@ class EntryApiController extends Controller
         $referrer  = $input['referrer'] ?? $_SERVER['HTTP_REFERER'] ?? null;
 
         $stmt = $db->prepare(
-            "INSERT INTO form_entries (form_id, data, ip_address, user_agent, referrer, created_at)
+            "INSERT INTO entries (form_id, data, ip_address, user_agent, referrer, created_at)
              VALUES (:fid, :data, :ip, :ua, :ref, NOW())"
         );
         $stmt->execute([
@@ -172,7 +172,7 @@ class EntryApiController extends Controller
         $entryId = (int) $db->lastInsertId();
 
         // Fetch the created entry
-        $entryStmt = $db->prepare("SELECT * FROM form_entries WHERE id = :id");
+        $entryStmt = $db->prepare("SELECT * FROM entries WHERE id = :id");
         $entryStmt->execute(['id' => $entryId]);
         $entry = $entryStmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -203,7 +203,7 @@ class EntryApiController extends Controller
         $db->prepare("DELETE FROM entry_notes WHERE entry_id = :eid")->execute(['eid' => (int) $id]);
 
         // Delete the entry
-        $db->prepare("DELETE FROM form_entries WHERE id = :id")->execute(['id' => (int) $id]);
+        $db->prepare("DELETE FROM entries WHERE id = :id")->execute(['id' => (int) $id]);
 
         return $this->json(['message' => 'Entry deleted successfully.']);
     }
@@ -219,7 +219,7 @@ class EntryApiController extends Controller
     {
         $stmt = $this->db()->prepare(
             "SELECT fe.*
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE fe.id = :id AND f.tenant_id = :tid"
         );

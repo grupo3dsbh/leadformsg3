@@ -67,8 +67,8 @@ class FormsController extends Controller
 
         // Fetch
         $sql = "SELECT f.*,
-                       (SELECT COUNT(*) FROM form_entries WHERE form_id = f.id) AS entry_count,
-                       (SELECT MAX(created_at) FROM form_entries WHERE form_id = f.id) AS last_entry_at
+                       (SELECT COUNT(*) FROM entries WHERE form_id = f.id) AS entry_count,
+                       (SELECT MAX(created_at) FROM entries WHERE form_id = f.id) AS last_entry_at
                   FROM forms f
                   {$whereClause}
                   ORDER BY f.{$sortBy} {$sortDir}
@@ -319,7 +319,7 @@ class FormsController extends Controller
         $db = $this->db();
 
         // Delete entries first
-        $db->prepare("DELETE FROM form_entries WHERE form_id = :fid")->execute(['fid' => (int) $id]);
+        $db->prepare("DELETE FROM entries WHERE form_id = :fid")->execute(['fid' => (int) $id]);
 
         // Delete the form
         $db->prepare("DELETE FROM forms WHERE id = :id AND tenant_id = :tid")->execute([

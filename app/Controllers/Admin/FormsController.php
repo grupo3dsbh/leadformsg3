@@ -66,7 +66,7 @@ class FormsController extends Controller
         $sql = "SELECT f.*,
                        t.name AS tenant_name,
                        t.slug AS tenant_slug,
-                       (SELECT COUNT(*) FROM form_entries WHERE form_id = f.id) AS entry_count
+                       (SELECT COUNT(*) FROM entries WHERE form_id = f.id) AS entry_count
                   FROM forms f
                   JOIN tenants t ON t.id = f.tenant_id
                   {$whereClause}
@@ -124,17 +124,17 @@ class FormsController extends Controller
 
         // Entry statistics
         $entryCount = (int) $db->prepare(
-            "SELECT COUNT(*) FROM form_entries WHERE form_id = :fid"
+            "SELECT COUNT(*) FROM entries WHERE form_id = :fid"
         )->execute(['fid' => (int) $id]) ? 0 : 0;
 
-        $stmt = $db->prepare("SELECT COUNT(*) FROM form_entries WHERE form_id = :fid");
+        $stmt = $db->prepare("SELECT COUNT(*) FROM entries WHERE form_id = :fid");
         $stmt->execute(['fid' => (int) $id]);
         $entryCount = (int) $stmt->fetchColumn();
 
         // Entries per day (last 30 days)
         $dailyEntries = $db->prepare(
             "SELECT DATE(created_at) AS day, COUNT(*) AS count
-               FROM form_entries
+               FROM entries
               WHERE form_id = :fid
                 AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
               GROUP BY day
@@ -145,7 +145,7 @@ class FormsController extends Controller
 
         // Recent entries
         $recentEntries = $db->prepare(
-            "SELECT * FROM form_entries WHERE form_id = :fid ORDER BY created_at DESC LIMIT 10"
+            "SELECT * FROM entries WHERE form_id = :fid ORDER BY created_at DESC LIMIT 10"
         );
         $recentEntries->execute(['fid' => (int) $id]);
         $recentEntries = $recentEntries->fetchAll(\PDO::FETCH_ASSOC);
@@ -199,13 +199,13 @@ class FormsController extends Controller
         $whereClause = 'WHERE ' . implode(' AND ', $where);
 
         // Total count
-        $countStmt = $db->prepare("SELECT COUNT(*) FROM form_entries fe {$whereClause}");
+        $countStmt = $db->prepare("SELECT COUNT(*) FROM entries fe {$whereClause}");
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
         // Fetch entries
         $sql = "SELECT fe.*
-                  FROM form_entries fe
+                  FROM entries fe
                   {$whereClause}
                   ORDER BY fe.created_at DESC
                   LIMIT :limit OFFSET :offset";

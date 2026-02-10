@@ -55,13 +55,13 @@ class EntriesController extends Controller
         $whereClause = 'WHERE ' . implode(' AND ', $where);
 
         // Total count
-        $countStmt = $db->prepare("SELECT COUNT(*) FROM form_entries fe {$whereClause}");
+        $countStmt = $db->prepare("SELECT COUNT(*) FROM entries fe {$whereClause}");
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
         // Fetch entries
         $sql = "SELECT fe.*
-                  FROM form_entries fe
+                  FROM entries fe
                   {$whereClause}
                   ORDER BY fe.created_at {$sortDir}
                   LIMIT :limit OFFSET :offset";
@@ -141,13 +141,13 @@ class EntriesController extends Controller
 
         // Previous and next entry IDs for navigation
         $prevStmt = $db->prepare(
-            "SELECT id FROM form_entries WHERE form_id = :fid AND id < :id ORDER BY id DESC LIMIT 1"
+            "SELECT id FROM entries WHERE form_id = :fid AND id < :id ORDER BY id DESC LIMIT 1"
         );
         $prevStmt->execute(['fid' => (int) $entry['form_id'], 'id' => (int) $id]);
         $prevId = $prevStmt->fetchColumn() ?: null;
 
         $nextStmt = $db->prepare(
-            "SELECT id FROM form_entries WHERE form_id = :fid AND id > :id ORDER BY id ASC LIMIT 1"
+            "SELECT id FROM entries WHERE form_id = :fid AND id > :id ORDER BY id ASC LIMIT 1"
         );
         $nextStmt->execute(['fid' => (int) $entry['form_id'], 'id' => (int) $id]);
         $nextId = $nextStmt->fetchColumn() ?: null;
@@ -180,7 +180,7 @@ class EntriesController extends Controller
         $this->db()->prepare("DELETE FROM entry_notes WHERE entry_id = :eid")->execute(['eid' => (int) $id]);
 
         // Delete the entry
-        $this->db()->prepare("DELETE FROM form_entries WHERE id = :id")->execute(['id' => (int) $id]);
+        $this->db()->prepare("DELETE FROM entries WHERE id = :id")->execute(['id' => (int) $id]);
 
         return $this->redirect("/client/forms/{$formId}/entries", [
             'success' => 'Entry deleted.',
@@ -220,7 +220,7 @@ class EntriesController extends Controller
 
         $whereClause = 'WHERE ' . implode(' AND ', $where);
 
-        $sql = "SELECT fe.* FROM form_entries fe {$whereClause} ORDER BY fe.created_at DESC LIMIT 50000";
+        $sql = "SELECT fe.* FROM entries fe {$whereClause} ORDER BY fe.created_at DESC LIMIT 50000";
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -265,7 +265,7 @@ class EntriesController extends Controller
         }
 
         // Total entries
-        $stmt = $db->prepare("SELECT COUNT(*) FROM form_entries WHERE form_id = :fid");
+        $stmt = $db->prepare("SELECT COUNT(*) FROM entries WHERE form_id = :fid");
         $stmt->execute(['fid' => (int) $formId]);
         $totalEntries = (int) $stmt->fetchColumn();
 
@@ -276,7 +276,7 @@ class EntriesController extends Controller
         // Entries per day (last 30 days)
         $stmt = $db->prepare(
             "SELECT DATE(created_at) AS day, COUNT(*) AS count
-               FROM form_entries
+               FROM entries
               WHERE form_id = :fid
                 AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
               GROUP BY day
@@ -288,7 +288,7 @@ class EntriesController extends Controller
         // Entries per hour distribution (all time)
         $stmt = $db->prepare(
             "SELECT HOUR(created_at) AS hour, COUNT(*) AS count
-               FROM form_entries
+               FROM entries
               WHERE form_id = :fid
               GROUP BY hour
               ORDER BY hour ASC"
@@ -299,7 +299,7 @@ class EntriesController extends Controller
         // Entries per weekday
         $stmt = $db->prepare(
             "SELECT DAYNAME(created_at) AS day_name, DAYOFWEEK(created_at) AS day_num, COUNT(*) AS count
-               FROM form_entries
+               FROM entries
               WHERE form_id = :fid
               GROUP BY day_name, day_num
               ORDER BY day_num ASC"
@@ -310,7 +310,7 @@ class EntriesController extends Controller
         // Top referrers
         $stmt = $db->prepare(
             "SELECT referrer, COUNT(*) AS count
-               FROM form_entries
+               FROM entries
               WHERE form_id = :fid AND referrer IS NOT NULL AND referrer != ''
               GROUP BY referrer
               ORDER BY count DESC
@@ -322,7 +322,7 @@ class EntriesController extends Controller
         // Browser/device stats (basic parsing from user_agent)
         $stmt = $db->prepare(
             "SELECT user_agent, COUNT(*) AS count
-               FROM form_entries
+               FROM entries
               WHERE form_id = :fid AND user_agent IS NOT NULL
               GROUP BY user_agent
               ORDER BY count DESC
@@ -334,7 +334,7 @@ class EntriesController extends Controller
         // Entries per month (last 12 months)
         $stmt = $db->prepare(
             "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS count
-               FROM form_entries
+               FROM entries
               WHERE form_id = :fid
                 AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
               GROUP BY month
@@ -538,7 +538,7 @@ class EntriesController extends Controller
     {
         $stmt = $this->db()->prepare(
             "SELECT fe.*
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
               WHERE fe.id = :id AND f.tenant_id = :tid"
         );

@@ -39,7 +39,7 @@ class DashboardController extends Controller
         )->fetchColumn();
 
         $totalEntries = (int) $db->query(
-            "SELECT COUNT(*) FROM form_entries"
+            "SELECT COUNT(*) FROM entries"
         )->fetchColumn();
 
         $totalUsers = (int) $db->query(
@@ -78,7 +78,7 @@ class DashboardController extends Controller
         $entryGrowth = $db->query(
             "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month,
                     COUNT(*) AS count
-               FROM form_entries
+               FROM entries
               WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
               GROUP BY month
               ORDER BY month ASC"
@@ -109,7 +109,7 @@ class DashboardController extends Controller
             "SELECT fe.id, fe.form_id, fe.created_at,
                     f.title AS form_title,
                     t.name  AS tenant_name
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
                JOIN tenants t ON t.id = f.tenant_id
               ORDER BY fe.created_at DESC
@@ -130,7 +130,7 @@ class DashboardController extends Controller
         // --- Today's snapshot ---------------------------------------------------
 
         $todayEntries = (int) $db->query(
-            "SELECT COUNT(*) FROM form_entries WHERE DATE(created_at) = CURDATE()"
+            "SELECT COUNT(*) FROM entries WHERE DATE(created_at) = CURDATE()"
         )->fetchColumn();
 
         $todaySignups = (int) $db->query(

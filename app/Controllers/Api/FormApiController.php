@@ -62,7 +62,7 @@ class FormApiController extends Controller
         // Fetch
         $sql = "SELECT f.id, f.title, f.slug, f.description, f.is_published,
                        f.views, f.created_at, f.updated_at,
-                       (SELECT COUNT(*) FROM form_entries WHERE form_id = f.id) AS entry_count
+                       (SELECT COUNT(*) FROM entries WHERE form_id = f.id) AS entry_count
                   FROM forms f
                   {$whereClause}
                   ORDER BY f.created_at DESC
@@ -107,7 +107,7 @@ class FormApiController extends Controller
         $form['theme']    = json_decode($form['theme'] ?? '{}', true) ?: [];
 
         // Add entry count
-        $stmt = $this->db()->prepare("SELECT COUNT(*) FROM form_entries WHERE form_id = :fid");
+        $stmt = $this->db()->prepare("SELECT COUNT(*) FROM entries WHERE form_id = :fid");
         $stmt->execute(['fid' => (int) $id]);
         $form['entry_count'] = (int) $stmt->fetchColumn();
 
@@ -265,7 +265,7 @@ class FormApiController extends Controller
         $db = $this->db();
 
         // Delete entries
-        $db->prepare("DELETE FROM form_entries WHERE form_id = :fid")->execute(['fid' => (int) $id]);
+        $db->prepare("DELETE FROM entries WHERE form_id = :fid")->execute(['fid' => (int) $id]);
 
         // Delete the form
         $db->prepare("DELETE FROM forms WHERE id = :id AND tenant_id = :tid")->execute([
@@ -313,13 +313,13 @@ class FormApiController extends Controller
         $whereClause = 'WHERE ' . implode(' AND ', $where);
 
         // Total count
-        $countStmt = $db->prepare("SELECT COUNT(*) FROM form_entries fe {$whereClause}");
+        $countStmt = $db->prepare("SELECT COUNT(*) FROM entries fe {$whereClause}");
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
         // Fetch
         $sql = "SELECT fe.id, fe.form_id, fe.data, fe.ip_address, fe.user_agent, fe.referrer, fe.created_at
-                  FROM form_entries fe
+                  FROM entries fe
                   {$whereClause}
                   ORDER BY fe.created_at DESC
                   LIMIT :limit OFFSET :offset";

@@ -68,7 +68,7 @@ class EntriesController extends Controller
 
         // Total count
         $countSql = "SELECT COUNT(*)
-                       FROM form_entries fe
+                       FROM entries fe
                        JOIN forms f ON f.id = fe.form_id
                        {$whereClause}";
         $stmt = $db->prepare($countSql);
@@ -81,7 +81,7 @@ class EntriesController extends Controller
                        f.slug  AS form_slug,
                        t.name  AS tenant_name,
                        t.id    AS tenant_id
-                  FROM form_entries fe
+                  FROM entries fe
                   JOIN forms f ON f.id = fe.form_id
                   JOIN tenants t ON t.id = f.tenant_id
                   {$whereClause}
@@ -138,7 +138,7 @@ class EntriesController extends Controller
                     f.fields AS form_fields,
                     t.name   AS tenant_name,
                     t.id     AS tenant_id
-               FROM form_entries fe
+               FROM entries fe
                JOIN forms f ON f.id = fe.form_id
                JOIN tenants t ON t.id = f.tenant_id
               WHERE fe.id = :id"
@@ -227,7 +227,7 @@ class EntriesController extends Controller
         $sql = "SELECT fe.id, fe.form_id, fe.data, fe.ip_address, fe.user_agent, fe.created_at,
                        f.title AS form_title,
                        t.name  AS tenant_name
-                  FROM form_entries fe
+                  FROM entries fe
                   JOIN forms f ON f.id = fe.form_id
                   JOIN tenants t ON t.id = f.tenant_id
                   {$whereClause}
