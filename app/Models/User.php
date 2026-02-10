@@ -180,6 +180,7 @@ class User extends Model
      */
     public function scopeTenant(int $tenantId): array
     {
-        return $this->where(['tenant_id' => $tenantId]);
+        $db = \Core\Database::getInstance();
+        return $db->table($this->table)->where('tenant_id', $tenantId)->get();
     }
 }

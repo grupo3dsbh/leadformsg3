@@ -140,6 +140,54 @@ abstract class Model
     }
 
     /**
+     * Find a single record by a column value (returns raw array).
+     */
+    public function findBy(string $column, mixed $value): ?array
+    {
+        $db    = Database::getInstance();
+        $query = $db->table($this->table)->where($column, $value);
+
+        if ($this->softDeletes) {
+            $query->whereNull('deleted_at');
+        }
+
+        $row = $query->first();
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * Update a record by primary key with the given data (returns affected rows).
+     */
+    public function update(int|string $id, array $data): int
+    {
+        $db = Database::getInstance();
+
+        if ($this->timestamps && !isset($data['updated_at'])) {
+            $data['updated_at'] = date('Y-m-d H:i:s');
+        }
+
+        return $db->table($this->table)
+            ->where($this->primaryKey, $id)
+            ->update($data);
+    }
+
+    /**
+     * Fetch a related parent record (belongs-to relationship).
+     */
+    public function belongsTo(string $relatedClass, string $foreignKey): ?array
+    {
+        $relatedModel = new $relatedClass();
+        $fkValue = $this->attributes[$foreignKey] ?? null;
+
+        if ($fkValue === null) {
+            return null;
+        }
+
+        return $relatedModel->findBy($relatedModel->primaryKey, $fkValue);
+    }
+
+    /**
      * Return all records (respects soft deletes).
      */
     public static function all(string $orderBy = 'id', string $direction = 'ASC'): array
