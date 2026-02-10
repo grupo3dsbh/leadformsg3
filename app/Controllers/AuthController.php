@@ -11,10 +11,8 @@ use Core\Controller;
 /**
  * Authentication Controller
  *
- * Handles all authentication-related workflows: login, registration, logout,
- * password reset, email verification and two-factor authentication. After a
- * successful login, super-admin users are redirected to /admin while regular
- * client users are sent to /dashboard.
+ * Handles login, registration, logout, password reset, email verification
+ * and two-factor authentication.
  */
 class AuthController extends Controller
 {
@@ -31,12 +29,8 @@ class AuthController extends Controller
     // LOGIN
     // ==================================================================
 
-    /**
-     * Display the login form.
-     */
     public function loginForm(): string
     {
-        // If already logged in, redirect to the appropriate dashboard.
         if ($this->isAuthenticated()) {
             $this->redirectAuthenticatedUser();
         }
@@ -47,17 +41,12 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    /**
-     * Process a login request.
-     */
     public function login(): string|null
     {
-        // ---- CSRF check ----
         if (!$this->verifyCsrf()) {
-            return $this->redirectBack(['error' => 'Invalid security token. Please try again.']);
+            return $this->redirectBack(['error' => 'Token de seguranca invalido. Tente novamente.']);
         }
 
-        // ---- Validation ----
         $rules = [
             'email'    => 'required|email|max:255',
             'password' => 'required|min:6|max:128',
@@ -73,36 +62,35 @@ class AuthController extends Controller
             ]);
         }
 
-        // ---- Authentication ----
         $user = $this->userModel->authenticate($data['email'], $data['password']);
 
         if ($user === null) {
             $this->logFailedLogin($data['email']);
             return $this->redirectBack([
-                'error' => 'Invalid email or password.',
+                'error' => 'E-mail ou senha invalidos.',
                 'old'   => ['email' => $data['email']],
             ]);
         }
 
-        // ---- Tenant status check ----
+        // Tenant status check
         if (!$this->checkTenantStatus($user)) {
             return $this->redirectBack([
-                'error' => 'Your account has been suspended. Please contact support.',
+                'error' => 'Sua conta foi suspensa. Entre em contato com o suporte.',
                 'old'   => ['email' => $data['email']],
             ]);
         }
 
-        // ---- Two-factor authentication ----
+        // Two-factor authentication
         if ($this->userModel->hasTwoFactor($user)) {
             $_SESSION['2fa_user_id'] = (int) $user['id'];
             $_SESSION['2fa_remember'] = !empty($data['remember']);
             return $this->redirect('/login/2fa');
         }
 
-        // ---- Create session ----
+        // Create session
         $this->createUserSession($user, !empty($data['remember']));
 
-        // ---- Redirect ----
+        // Redirect
         $intended = $_SESSION['url.intended'] ?? null;
         unset($_SESSION['url.intended']);
 
@@ -118,9 +106,6 @@ class AuthController extends Controller
     // REGISTRATION
     // ==================================================================
 
-    /**
-     * Display the registration form.
-     */
     public function registerForm(): string
     {
         if ($this->isAuthenticated()) {
@@ -133,16 +118,10 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    /**
-     * Process a registration request.
-     *
-     * Creates a new tenant and the first admin user for that tenant, then
-     * sends an email verification link.
-     */
     public function register(): string|null
     {
         if (!$this->verifyCsrf()) {
-            return $this->redirectBack(['error' => 'Invalid security token.']);
+            return $this->redirectBack(['error' => 'Token de seguranca invalido.']);
         }
 
         $rules = [
@@ -157,14 +136,12 @@ class AuthController extends Controller
         $data   = $this->only(['first_name', 'last_name', 'email', 'password', 'password_confirmation', 'company_name', 'plan']);
         $errors = $this->validateInput($data, $rules);
 
-        // Password confirmation.
         if (($data['password'] ?? '') !== ($data['password_confirmation'] ?? '')) {
-            $errors['password_confirmation'] = 'Passwords do not match.';
+            $errors['password_confirmation'] = 'As senhas nao conferem.';
         }
 
-        // Check if email already exists.
         if ($this->userModel->findByEmail($data['email'] ?? '') !== null) {
-            $errors['email'] = 'This email address is already registered.';
+            $errors['email'] = 'Este e-mail ja esta cadastrado.';
         }
 
         if (!empty($errors)) {
@@ -174,70 +151,74 @@ class AuthController extends Controller
             ]);
         }
 
-        // ---- Create tenant ----
+        // Create tenant
         $slug = $this->generateTenantSlug($data['company_name']);
 
-        $tenantData = [
-            'name'       => $data['company_name'],
-            'slug'       => $slug,
-            'plan_id'    => $this->resolvePlanId($data['plan'] ?? 'free'),
-            'status'     => 'trialing',
-            'trial_ends_at' => date('Y-m-d H:i:s', strtotime('+14 days')),
-            'settings'   => json_encode(['locale' => 'pt_BR', 'timezone' => 'America/Sao_Paulo']),
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ];
+        try {
+            $db = \Core\Database::getInstance();
 
-        $tenantId = $this->tenantModel->create($tenantData);
-
-        if (!$tenantId) {
+            // Insert tenant directly
+            $stmt = $db->prepare(
+                'INSERT INTO tenants (name, slug, plan_id, status, subscription_status, subscription_ends_at, settings, created_at, updated_at)
+                 VALUES (:name, :slug, :plan_id, :status, :sub_status, :sub_ends, :settings, :created_at, :updated_at)'
+            );
+            $stmt->execute([
+                'name'       => $data['company_name'],
+                'slug'       => $slug,
+                'plan_id'    => $this->resolvePlanId($data['plan'] ?? 'free'),
+                'status'     => 'active',
+                'sub_status' => 'trialing',
+                'sub_ends'   => date('Y-m-d H:i:s', strtotime('+14 days')),
+                'settings'   => json_encode(['locale' => 'pt_BR', 'timezone' => 'America/Sao_Paulo']),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+            $tenantId = (int) $db->lastInsertId();
+        } catch (\Throwable $e) {
             return $this->redirectBack([
-                'error' => 'An error occurred while creating your account. Please try again.',
+                'error' => 'Erro ao criar sua conta. Tente novamente.',
                 'old'   => array_diff_key($data, ['password' => 1, 'password_confirmation' => 1]),
             ]);
         }
 
-        // ---- Create admin user ----
+        // Create admin user
+        $fullName = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
+
+        try {
+            $stmt = $db->prepare(
+                'INSERT INTO users (tenant_id, name, email, password, role, status, locale, timezone, created_at, updated_at)
+                 VALUES (:tenant_id, :name, :email, :password, :role, :status, :locale, :timezone, :created_at, :updated_at)'
+            );
+            $stmt->execute([
+                'tenant_id'  => $tenantId,
+                'name'       => $fullName,
+                'email'      => $data['email'],
+                'password'   => password_hash($data['password'], PASSWORD_BCRYPT),
+                'role'       => 'admin',
+                'status'     => 'active',
+                'locale'     => 'pt_BR',
+                'timezone'   => 'America/Sao_Paulo',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+            $userId = (int) $db->lastInsertId();
+        } catch (\Throwable $e) {
+            // Rollback tenant
+            $db->prepare('DELETE FROM tenants WHERE id = :id')->execute(['id' => $tenantId]);
+            return $this->redirectBack([
+                'error' => 'Erro ao criar o usuario. Tente novamente.',
+                'old'   => array_diff_key($data, ['password' => 1, 'password_confirmation' => 1]),
+            ]);
+        }
+
+        // Store verification token
         $verificationToken = $this->generateToken(64);
+        $this->storeVerificationToken($userId, $verificationToken);
 
-        $userData = [
-            'tenant_id'          => $tenantId,
-            'email'              => $data['email'],
-            'password_hash'      => password_hash($data['password'], PASSWORD_ARGON2ID, [
-                'memory_cost' => 65536,
-                'time_cost'   => 4,
-                'threads'     => 3,
-            ]),
-            'first_name'         => $data['first_name'],
-            'last_name'          => $data['last_name'],
-            'role'               => 'admin',
-            'is_active'          => 1,
-            'email_verified_at'  => null,
-            'locale'             => 'pt_BR',
-            'timezone'           => 'America/Sao_Paulo',
-            'created_at'         => date('Y-m-d H:i:s'),
-            'updated_at'         => date('Y-m-d H:i:s'),
-        ];
+        // Send verification email (stub)
+        $this->sendVerificationEmail($data['email'], $fullName, $verificationToken);
 
-        $userId = $this->userModel->create($userData);
-
-        if (!$userId) {
-            // Rollback: delete the tenant.
-            $this->tenantModel->delete((int) $tenantId);
-            return $this->redirectBack([
-                'error' => 'An error occurred while creating your user account.',
-                'old'   => array_diff_key($data, ['password' => 1, 'password_confirmation' => 1]),
-            ]);
-        }
-
-        // ---- Store verification token ----
-        $this->storeVerificationToken((int) $userId, $verificationToken);
-
-        // ---- Send verification email ----
-        $this->sendVerificationEmail($data['email'], $data['first_name'], $verificationToken);
-
-        // ---- Flash success and redirect ----
-        $this->flash('success', 'Account created successfully! Please check your email to verify your account.');
+        $this->flash('success', 'Conta criada com sucesso! Verifique seu e-mail para ativar sua conta.');
 
         return $this->redirect('/login');
     }
@@ -246,13 +227,9 @@ class AuthController extends Controller
     // LOGOUT
     // ==================================================================
 
-    /**
-     * Log the user out and destroy the session.
-     */
     public function logout(): null
     {
         $this->destroySession();
-
         return $this->redirect('/login');
     }
 
@@ -260,9 +237,6 @@ class AuthController extends Controller
     // PASSWORD RESET
     // ==================================================================
 
-    /**
-     * Display the "forgot password" form.
-     */
     public function forgotForm(): string
     {
         return $this->view('auth.forgot', [
@@ -270,16 +244,10 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    /**
-     * Process a "forgot password" request.
-     *
-     * Always returns a success message regardless of whether the email exists,
-     * to avoid leaking account information.
-     */
     public function forgot(): string|null
     {
         if (!$this->verifyCsrf()) {
-            return $this->redirectBack(['error' => 'Invalid security token.']);
+            return $this->redirectBack(['error' => 'Token de seguranca invalido.']);
         }
 
         $email  = trim($_POST['email'] ?? '');
@@ -294,25 +262,21 @@ class AuthController extends Controller
         if ($user !== null) {
             $token = $this->generateToken(64);
             $this->storePasswordResetToken($email, $token);
-            $this->sendPasswordResetEmail($email, $user['first_name'] ?? '', $token);
+            $this->sendPasswordResetEmail($email, $user['name'] ?? '', $token);
         }
 
-        // Always show the same message.
-        $this->flash('success', 'If this email is registered, you will receive a password reset link shortly.');
+        $this->flash('success', 'Se este e-mail estiver cadastrado, voce recebera um link para redefinir sua senha.');
 
         return $this->redirect('/forgot-password');
     }
 
-    /**
-     * Display the password reset form.
-     */
     public function resetForm(): string
     {
         $token = $_GET['token'] ?? '';
         $email = $_GET['email'] ?? '';
 
         if ($token === '' || $email === '') {
-            $this->flash('error', 'Invalid password reset link.');
+            $this->flash('error', 'Link de redefinicao invalido.');
             return $this->redirect('/login');
         }
 
@@ -323,13 +287,10 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    /**
-     * Process a password reset.
-     */
     public function reset(): string|null
     {
         if (!$this->verifyCsrf()) {
-            return $this->redirectBack(['error' => 'Invalid security token.']);
+            return $this->redirectBack(['error' => 'Token de seguranca invalido.']);
         }
 
         $data  = $this->only(['email', 'token', 'password', 'password_confirmation']);
@@ -342,40 +303,33 @@ class AuthController extends Controller
         $errors = $this->validateInput($data, $rules);
 
         if (($data['password'] ?? '') !== ($data['password_confirmation'] ?? '')) {
-            $errors['password_confirmation'] = 'Passwords do not match.';
+            $errors['password_confirmation'] = 'As senhas nao conferem.';
         }
 
         if (!empty($errors)) {
             return $this->redirectBack(['errors' => $errors]);
         }
 
-        // Verify the reset token.
         if (!$this->verifyPasswordResetToken($data['email'], $data['token'])) {
-            $this->flash('error', 'Invalid or expired reset token.');
+            $this->flash('error', 'Token invalido ou expirado.');
             return $this->redirect('/forgot-password');
         }
 
-        // Update the password.
         $user = $this->userModel->findByEmail($data['email']);
 
         if ($user === null) {
-            $this->flash('error', 'User not found.');
+            $this->flash('error', 'Usuario nao encontrado.');
             return $this->redirect('/forgot-password');
         }
 
         $this->userModel->update((int) $user['id'], [
-            'password_hash' => password_hash($data['password'], PASSWORD_ARGON2ID, [
-                'memory_cost' => 65536,
-                'time_cost'   => 4,
-                'threads'     => 3,
-            ]),
+            'password'   => password_hash($data['password'], PASSWORD_BCRYPT),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        // Invalidate the token.
         $this->deletePasswordResetToken($data['email']);
 
-        $this->flash('success', 'Password reset successfully. You can now log in.');
+        $this->flash('success', 'Senha redefinida com sucesso! Voce ja pode fazer login.');
 
         return $this->redirect('/login');
     }
@@ -384,35 +338,29 @@ class AuthController extends Controller
     // EMAIL VERIFICATION
     // ==================================================================
 
-    /**
-     * Verify a user's email address via a signed token link.
-     */
     public function verifyEmail(): string|null
     {
         $token  = $_GET['token'] ?? '';
         $userId = (int) ($_GET['id'] ?? 0);
 
         if ($token === '' || $userId === 0) {
-            $this->flash('error', 'Invalid verification link.');
+            $this->flash('error', 'Link de verificacao invalido.');
             return $this->redirect('/login');
         }
 
-        // Look up the token.
         if (!$this->verifyEmailToken($userId, $token)) {
-            $this->flash('error', 'Invalid or expired verification link.');
+            $this->flash('error', 'Link de verificacao invalido ou expirado.');
             return $this->redirect('/login');
         }
 
-        // Mark email as verified.
         $this->userModel->update($userId, [
             'email_verified_at' => date('Y-m-d H:i:s'),
             'updated_at'        => date('Y-m-d H:i:s'),
         ]);
 
-        // Clean up token.
         $this->deleteEmailVerificationToken($userId);
 
-        $this->flash('success', 'Email verified successfully! You can now log in.');
+        $this->flash('success', 'E-mail verificado com sucesso! Voce ja pode fazer login.');
 
         return $this->redirect('/login');
     }
@@ -421,9 +369,6 @@ class AuthController extends Controller
     // TWO-FACTOR AUTHENTICATION
     // ==================================================================
 
-    /**
-     * Display the 2FA code entry form during login.
-     */
     public function enable2FA(): string
     {
         $userId = $_SESSION['2fa_user_id'] ?? null;
@@ -437,13 +382,10 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    /**
-     * Verify the 2FA code submitted during login.
-     */
     public function verify2FA(): string|null
     {
         if (!$this->verifyCsrf()) {
-            return $this->redirectBack(['error' => 'Invalid security token.']);
+            return $this->redirectBack(['error' => 'Token de seguranca invalido.']);
         }
 
         $userId = $_SESSION['2fa_user_id'] ?? null;
@@ -455,22 +397,19 @@ class AuthController extends Controller
         $code = trim($_POST['code'] ?? '');
 
         if ($code === '') {
-            return $this->redirectBack(['error' => 'Please enter the verification code.']);
+            return $this->redirectBack(['error' => 'Digite o codigo de verificacao.']);
         }
 
-        // Load user to get 2FA secret.
-        $user = $this->userModel->find((int) $userId);
+        $user = $this->userModel->findBy('id', $userId);
 
         if ($user === null) {
             return $this->redirect('/login');
         }
 
-        // Verify TOTP code.
         if (!$this->verifyTotpCode($user['two_factor_secret'], $code)) {
-            return $this->redirectBack(['error' => 'Invalid verification code.']);
+            return $this->redirectBack(['error' => 'Codigo de verificacao invalido.']);
         }
 
-        // Clean up 2FA session data and create the real session.
         $remember = $_SESSION['2fa_remember'] ?? false;
         unset($_SESSION['2fa_user_id'], $_SESSION['2fa_remember']);
 
@@ -496,21 +435,17 @@ class AuthController extends Controller
      */
     private function createUserSession(array $user, bool $remember = false): void
     {
-        // Regenerate session ID to prevent fixation.
         session_regenerate_id(true);
 
-        // Store essential user data (never store the password hash in session).
         $sessionUser = [
-            'id'          => (int) $user['id'],
-            'tenant_id'   => (int) ($user['tenant_id'] ?? 0),
-            'email'       => $user['email'],
-            'first_name'  => $user['first_name'] ?? '',
-            'last_name'   => $user['last_name'] ?? '',
-            'role'        => $user['role'] ?? 'user',
-            'permissions' => json_decode($user['permissions'] ?? '[]', true) ?: [],
-            'avatar_url'  => $user['avatar_url'] ?? '',
-            'locale'      => $user['locale'] ?? 'pt_BR',
-            'timezone'    => $user['timezone'] ?? 'America/Sao_Paulo',
+            'id'        => (int) $user['id'],
+            'tenant_id' => (int) ($user['tenant_id'] ?? 0),
+            'email'     => $user['email'],
+            'name'      => $user['name'] ?? '',
+            'role'      => $user['role'] ?? 'viewer',
+            'avatar'    => $user['avatar'] ?? '',
+            'locale'    => $user['locale'] ?? 'pt_BR',
+            'timezone'  => $user['timezone'] ?? 'America/Sao_Paulo',
         ];
 
         $_SESSION['user_id']        = (int) $user['id'];
@@ -520,23 +455,15 @@ class AuthController extends Controller
         $_SESSION['_ip']            = $_SERVER['REMOTE_ADDR'] ?? '';
         $_SESSION['_user_agent']    = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-        // Extended session lifetime for "remember me".
         if ($remember) {
             $lifetime = 60 * 60 * 24 * 30; // 30 days
             session_set_cookie_params(['lifetime' => $lifetime]);
             ini_set('session.gc_maxlifetime', (string) $lifetime);
         }
 
-        // Update last login in database.
-        $this->userModel->updateLastLogin(
-            (int) $user['id'],
-            $_SERVER['REMOTE_ADDR'] ?? null
-        );
+        $this->userModel->updateLastLogin((int) $user['id']);
     }
 
-    /**
-     * Destroy the current session completely.
-     */
     private function destroySession(): void
     {
         $_SESSION = [];
@@ -557,22 +484,15 @@ class AuthController extends Controller
         session_destroy();
     }
 
-    /**
-     * Check whether the current user is already logged in.
-     */
     protected function isAuthenticated(): bool
     {
         return !empty($_SESSION['user_id']) && !empty($_SESSION['user']);
     }
 
-    /**
-     * Redirect the authenticated user based on their role.
-     */
     private function redirectAuthenticatedUser(?array $user = null): never
     {
         $user ??= $_SESSION['user'] ?? null;
-
-        $role = $user['role'] ?? 'user';
+        $role = $user['role'] ?? 'viewer';
 
         if ($role === 'super_admin') {
             header('Location: /admin', true, 302);
@@ -583,14 +503,10 @@ class AuthController extends Controller
         exit;
     }
 
-    /**
-     * Check whether the user's tenant is in an acceptable status.
-     */
     private function checkTenantStatus(array $user): bool
     {
         $tenantId = (int) ($user['tenant_id'] ?? 0);
 
-        // Super admins are not scoped to a tenant.
         if (($user['role'] ?? '') === 'super_admin') {
             return true;
         }
@@ -599,25 +515,21 @@ class AuthController extends Controller
             return false;
         }
 
-        $tenant = $this->tenantModel->find($tenantId);
+        $tenant = $this->tenantModel->findBy('id', $tenantId);
 
         if ($tenant === null) {
             return false;
         }
 
-        return in_array($tenant['status'] ?? '', ['active', 'trialing'], true);
+        return in_array($tenant['status'] ?? '', ['active', 'inactive'], true);
     }
 
-    /**
-     * Generate a unique slug for a new tenant based on the company name.
-     */
     private function generateTenantSlug(string $companyName): string
     {
         $slug = strtolower(trim($companyName));
         $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
         $slug = trim($slug, '-');
 
-        // Ensure uniqueness.
         $baseSlug = $slug;
         $counter  = 1;
 
@@ -629,9 +541,6 @@ class AuthController extends Controller
         return $slug;
     }
 
-    /**
-     * Resolve a plan slug to its database ID.
-     */
     private function resolvePlanId(string $planSlug): int
     {
         try {
@@ -640,15 +549,12 @@ class AuthController extends Controller
             $stmt->execute(['slug' => $planSlug]);
             $plan = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            return $plan ? (int) $plan['id'] : 1; // Default to plan 1 (free).
+            return $plan ? (int) $plan['id'] : 1;
         } catch (\Throwable) {
             return 1;
         }
     }
 
-    /**
-     * Get the list of available plans for the registration form.
-     */
     private function getAvailablePlans(): array
     {
         try {
@@ -660,16 +566,13 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Generate a cryptographically secure random token.
-     */
     private function generateToken(int $length = 64): string
     {
         return bin2hex(random_bytes(intdiv($length, 2)));
     }
 
     // ------------------------------------------------------------------
-    // Token storage helpers (password reset, email verification)
+    // Token storage helpers
     // ------------------------------------------------------------------
 
     private function storeVerificationToken(int $userId, string $token): void
@@ -688,7 +591,6 @@ class AuthController extends Controller
                 'created_at2'  => date('Y-m-d H:i:s'),
             ]);
         } catch (\Throwable) {
-            // Silently fail; the user can request a new verification email.
         }
     }
 
@@ -718,7 +620,6 @@ class AuthController extends Controller
             $db->prepare('DELETE FROM email_verifications WHERE user_id = :user_id')
                ->execute(['user_id' => $userId]);
         } catch (\Throwable) {
-            // Non-critical.
         }
     }
 
@@ -726,7 +627,6 @@ class AuthController extends Controller
     {
         try {
             $db = \Core\Database::getInstance();
-            // Delete previous tokens for this email.
             $db->prepare('DELETE FROM password_resets WHERE email = :email')
                ->execute(['email' => $email]);
 
@@ -739,7 +639,6 @@ class AuthController extends Controller
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
         } catch (\Throwable) {
-            // Non-critical.
         }
     }
 
@@ -769,46 +668,34 @@ class AuthController extends Controller
             $db->prepare('DELETE FROM password_resets WHERE email = :email')
                ->execute(['email' => $email]);
         } catch (\Throwable) {
-            // Non-critical.
         }
     }
 
     // ------------------------------------------------------------------
-    // Email sending stubs (implement with your mailer of choice)
+    // Email sending stubs
     // ------------------------------------------------------------------
 
     private function sendVerificationEmail(string $email, string $name, string $token): void
     {
-        // TODO: Integrate with a mailer service (e.g., PHPMailer, SendGrid).
-        // The verification link should point to:
-        // APP_URL . '/verify-email?id={userId}&token={token}'
+        // TODO: Integrate with mailer
     }
 
     private function sendPasswordResetEmail(string $email, string $name, string $token): void
     {
-        // TODO: Integrate with a mailer service.
-        // The reset link should point to:
-        // APP_URL . '/reset-password?email={email}&token={token}'
+        // TODO: Integrate with mailer
     }
 
     // ------------------------------------------------------------------
     // TOTP verification
     // ------------------------------------------------------------------
 
-    /**
-     * Verify a TOTP (Time-based One-Time Password) code against a secret.
-     *
-     * Implements RFC 6238 with a 30-second time step and a +/- 1 step window
-     * to account for clock drift.
-     */
     private function verifyTotpCode(string $secret, string $code): bool
     {
         $timeStep = 30;
         $codeLen  = 6;
-        $window   = 1; // Allow 1 step before/after current.
+        $window   = 1;
 
         $currentTimeSlice = intdiv(time(), $timeStep);
-
         $decodedSecret = $this->base32Decode($secret);
 
         if ($decodedSecret === '') {
@@ -838,9 +725,6 @@ class AuthController extends Controller
         return false;
     }
 
-    /**
-     * Decode a Base32-encoded string (RFC 4648).
-     */
     private function base32Decode(string $input): string
     {
         $map = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -872,9 +756,6 @@ class AuthController extends Controller
     // Logging
     // ------------------------------------------------------------------
 
-    /**
-     * Log a failed login attempt for security auditing.
-     */
     private function logFailedLogin(string $email): void
     {
         try {
@@ -891,7 +772,6 @@ class AuthController extends Controller
                 'created_at'  => date('Y-m-d H:i:s'),
             ]);
         } catch (\Throwable) {
-            // Non-critical: don't break the login flow.
         }
     }
 
@@ -899,10 +779,6 @@ class AuthController extends Controller
     // Request helpers
     // ------------------------------------------------------------------
 
-    /**
-     * Return only the specified keys from $_POST.
-     * Overrides parent to only read from POST data for security.
-     */
     protected function only(array $keys): array
     {
         $result = [];
@@ -912,10 +788,6 @@ class AuthController extends Controller
         return $result;
     }
 
-    /**
-     * Validate input and return errors array (empty if valid).
-     * Unlike parent's validate() which throws, this returns errors for form handling.
-     */
     private function validateInput(array $data, array $rules): array
     {
         $validator = new \Core\Validator($data, $rules);
@@ -925,9 +797,6 @@ class AuthController extends Controller
         return [];
     }
 
-    /**
-     * Verify the CSRF token submitted with the form.
-     */
     private function verifyCsrf(): bool
     {
         $token = $_POST['_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
@@ -940,17 +809,11 @@ class AuthController extends Controller
         return hash_equals($sessionToken, $token);
     }
 
-    /**
-     * Set a flash message in the session.
-     */
     protected function flash(string $key, mixed $value): void
     {
         $_SESSION['_flash'][$key] = $value;
     }
 
-    /**
-     * Redirect back to the previous page with optional flash data.
-     */
     private function redirectBack(array $flash = []): never
     {
         foreach ($flash as $key => $value) {

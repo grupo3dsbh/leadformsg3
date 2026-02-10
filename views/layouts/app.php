@@ -141,32 +141,23 @@ $currentUri = $_SERVER['REQUEST_URI'] ?? '/';
         handleScroll();
 
         // Mobile menu toggle
-        var navToggle = document.getElementById('navToggle');
-        var mobileMenu = document.getElementById('mobileMenu');
-        var mobileOverlay = document.getElementById('mobileOverlay');
-        var mobileClose = document.getElementById('mobileClose');
+        var navToggle = document.getElementById('mobile-menu-toggle');
+        var mobileMenu = document.getElementById('mobile-menu');
 
-        function openMobile() {
-            mobileMenu.classList.add('open');
-            mobileOverlay.classList.add('active');
-            navToggle.setAttribute('aria-expanded', 'true');
-            document.body.style.overflow = 'hidden';
+        if (navToggle && mobileMenu) {
+            navToggle.addEventListener('click', function() {
+                var isOpen = mobileMenu.classList.contains('active');
+                if (isOpen) {
+                    mobileMenu.classList.remove('active');
+                    navToggle.classList.remove('active');
+                    document.body.style.overflow = '';
+                } else {
+                    mobileMenu.classList.add('active');
+                    navToggle.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            });
         }
-
-        function closeMobile() {
-            mobileMenu.classList.remove('open');
-            mobileOverlay.classList.remove('active');
-            navToggle.setAttribute('aria-expanded', 'false');
-            document.body.style.overflow = '';
-        }
-
-        navToggle.addEventListener('click', function() {
-            var isOpen = mobileMenu.classList.contains('open');
-            isOpen ? closeMobile() : openMobile();
-        });
-
-        mobileClose.addEventListener('click', closeMobile);
-        mobileOverlay.addEventListener('click', closeMobile);
 
         // Auto-dismiss toasts after 5 seconds
         var toasts = document.querySelectorAll('.toast');

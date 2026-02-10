@@ -8,8 +8,6 @@ use Core\Model;
 
 /**
  * User model for authentication and tenant membership.
- *
- * Represents application users who belong to tenants and interact with forms.
  */
 class User extends Model
 {
@@ -17,30 +15,25 @@ class User extends Model
 
     protected array $fillable = [
         'tenant_id',
+        'name',
         'email',
-        'password_hash',
-        'first_name',
-        'last_name',
+        'password',
         'role',
-        'permissions',
-        'avatar_url',
+        'avatar',
+        'phone',
         'two_factor_secret',
         'two_factor_enabled',
         'email_verified_at',
         'last_login_at',
-        'last_login_ip',
+        'status',
         'locale',
         'timezone',
-        'is_active',
         'created_at',
         'updated_at',
     ];
 
     /**
      * Find a user by their email address.
-     *
-     * @param string $email The email to search for.
-     * @return array|null The user record or null if not found.
      */
     public function findByEmail(string $email): ?array
     {
@@ -49,13 +42,6 @@ class User extends Model
 
     /**
      * Authenticate a user with email and password.
-     *
-     * Returns the user record on success or null on failure.
-     * Also updates the last login timestamp on success.
-     *
-     * @param string $email    The user's email address.
-     * @param string $password The plaintext password to verify.
-     * @return array|null The authenticated user record or null.
      */
     public function authenticate(string $email, string $password): ?array
     {
@@ -65,11 +51,11 @@ class User extends Model
             return null;
         }
 
-        if (!$this->verifyPassword($password, $user['password_hash'])) {
+        if (!password_verify($password, $user['password'] ?? '')) {
             return null;
         }
 
-        if (empty($user['is_active'])) {
+        if (($user['status'] ?? '') !== 'active') {
             return null;
         }
 
@@ -80,10 +66,6 @@ class User extends Model
 
     /**
      * Verify a plaintext password against a stored hash.
-     *
-     * @param string $password     The plaintext password.
-     * @param string $passwordHash The stored bcrypt/argon2 hash.
-     * @return bool True if the password matches.
      */
     public function verifyPassword(string $password, string $passwordHash): bool
     {
@@ -91,28 +73,17 @@ class User extends Model
     }
 
     /**
-     * Update the last login timestamp and IP for a user.
-     *
-     * @param int         $userId The user ID.
-     * @param string|null $ip     Optional IP address of the login request.
-     * @return bool True on success.
+     * Update the last login timestamp.
      */
-    public function updateLastLogin(int $userId, ?string $ip = null): bool
+    public function updateLastLogin(int $userId): bool
     {
-        $data = ['last_login_at' => date('Y-m-d H:i:s')];
-
-        if ($ip !== null) {
-            $data['last_login_ip'] = $ip;
-        }
-
-        return (bool) $this->update($userId, $data);
+        return (bool) $this->update($userId, [
+            'last_login_at' => date('Y-m-d H:i:s'),
+        ]);
     }
 
     /**
      * Check whether the user has two-factor authentication enabled.
-     *
-     * @param array $user The user record.
-     * @return bool True if 2FA is enabled.
      */
     public function hasTwoFactor(array $user): bool
     {
@@ -121,9 +92,6 @@ class User extends Model
 
     /**
      * Determine if a user has the admin role.
-     *
-     * @param array $user The user record.
-     * @return bool True if the user is an admin.
      */
     public function isAdmin(array $user): bool
     {
@@ -132,9 +100,6 @@ class User extends Model
 
     /**
      * Determine if a user has the super_admin role.
-     *
-     * @param array $user The user record.
-     * @return bool True if the user is a super admin.
      */
     public function isSuperAdmin(array $user): bool
     {
@@ -142,30 +107,7 @@ class User extends Model
     }
 
     /**
-     * Check if a user possesses a specific permission.
-     *
-     * Super admins implicitly have all permissions.
-     *
-     * @param array  $user       The user record.
-     * @param string $permission The permission key to check (e.g. "forms.create").
-     * @return bool True if the user has the permission.
-     */
-    public function hasPermission(array $user, string $permission): bool
-    {
-        if ($this->isSuperAdmin($user)) {
-            return true;
-        }
-
-        $permissions = json_decode($user['permissions'] ?? '[]', true) ?: [];
-
-        return in_array($permission, $permissions, true);
-    }
-
-    /**
      * Get the tenant this user belongs to.
-     *
-     * @param array $user The user record.
-     * @return array|null The tenant record or null.
      */
     public function tenant(array $user): ?array
     {
@@ -174,9 +116,6 @@ class User extends Model
 
     /**
      * Scope query results to a specific tenant.
-     *
-     * @param int $tenantId The tenant ID to filter by.
-     * @return array List of users belonging to the tenant.
      */
     public function scopeTenant(int $tenantId): array
     {
