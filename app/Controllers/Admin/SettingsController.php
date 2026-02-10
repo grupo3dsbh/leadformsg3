@@ -65,9 +65,10 @@ class SettingsController extends Controller
      */
     public function seo(): string
     {
-        $settings = $this->loadSettings('seo_');
+        $_GET['tab'] = 'seo';
+        $settings = $this->loadSettings();
 
-        return $this->view('admin/settings/seo', [
+        return $this->view('admin/settings/index', [
             'settings' => $settings,
         ], 'layouts.admin');
     }
@@ -83,8 +84,9 @@ class SettingsController extends Controller
         ]);
 
         if (!empty($errors)) {
-            return $this->view('admin/settings/seo', [
-                'settings' => $_POST,
+            $_GET['tab'] = 'seo';
+            return $this->view('admin/settings/index', [
+                'settings' => array_merge($this->loadSettings(), $_POST),
                 'errors'   => $errors,
             ], 'layouts.admin');
         }
@@ -98,7 +100,7 @@ class SettingsController extends Controller
         $this->saveSetting('seo_bing_verification', trim($_POST['seo_bing_verification'] ?? ''));
         $this->saveSetting('seo_custom_head', trim($_POST['seo_custom_head'] ?? ''));
 
-        return $this->redirect('/admin/settings/seo', ['success' => 'SEO settings saved.']);
+        return $this->redirect('/admin/settings?tab=seo', ['success' => 'SEO settings saved.']);
     }
 
     /**
@@ -106,9 +108,10 @@ class SettingsController extends Controller
      */
     public function theme(): string
     {
-        $settings = $this->loadSettings('theme_');
+        $_GET['tab'] = 'tema';
+        $settings = $this->loadSettings();
 
-        return $this->view('admin/settings/theme', [
+        return $this->view('admin/settings/index', [
             'settings' => $settings,
         ], 'layouts.admin');
     }
@@ -132,7 +135,7 @@ class SettingsController extends Controller
         $this->saveSetting('theme_custom_css', trim($_POST['theme_custom_css'] ?? ''));
         $this->saveSetting('theme_custom_js', trim($_POST['theme_custom_js'] ?? ''));
 
-        return $this->redirect('/admin/settings/theme', ['success' => 'Theme settings saved.']);
+        return $this->redirect('/admin/settings?tab=tema', ['success' => 'Theme settings saved.']);
     }
 
     /**
@@ -140,9 +143,10 @@ class SettingsController extends Controller
      */
     public function ai(): string
     {
-        $settings = $this->loadSettings('ai_');
+        $_GET['tab'] = 'ia';
+        $settings = $this->loadSettings();
 
-        return $this->view('admin/settings/ai', [
+        return $this->view('admin/settings/index', [
             'settings' => $settings,
         ], 'layouts.admin');
     }
@@ -161,8 +165,9 @@ class SettingsController extends Controller
         ]);
 
         if (!empty($errors)) {
-            return $this->view('admin/settings/ai', [
-                'settings' => $_POST,
+            $_GET['tab'] = 'ia';
+            return $this->view('admin/settings/index', [
+                'settings' => array_merge($this->loadSettings(), $_POST),
                 'errors'   => $errors,
             ], 'layouts.admin');
         }
@@ -177,7 +182,7 @@ class SettingsController extends Controller
         $this->saveSetting('ai_form_generation', !empty($_POST['ai_form_generation']) ? '1' : '0');
         $this->saveSetting('ai_entry_analysis', !empty($_POST['ai_entry_analysis']) ? '1' : '0');
 
-        return $this->redirect('/admin/settings/ai', ['success' => 'AI configuration saved.']);
+        return $this->redirect('/admin/settings?tab=ia', ['success' => 'AI configuration saved.']);
     }
 
     /**
@@ -185,9 +190,10 @@ class SettingsController extends Controller
      */
     public function api(): string
     {
-        $settings = $this->loadSettings('api_');
+        $_GET['tab'] = 'api';
+        $settings = $this->loadSettings();
 
-        return $this->view('admin/settings/api', [
+        return $this->view('admin/settings/index', [
             'settings' => $settings,
         ], 'layouts.admin');
     }
@@ -204,8 +210,9 @@ class SettingsController extends Controller
         ]);
 
         if (!empty($errors)) {
-            return $this->view('admin/settings/api', [
-                'settings' => $_POST,
+            $_GET['tab'] = 'api';
+            return $this->view('admin/settings/index', [
+                'settings' => array_merge($this->loadSettings(), $_POST),
                 'errors'   => $errors,
             ], 'layouts.admin');
         }
@@ -218,7 +225,7 @@ class SettingsController extends Controller
         $this->saveSetting('api_webhook_timeout', $_POST['api_webhook_timeout'] ?? '30');
         $this->saveSetting('api_log_requests', !empty($_POST['api_log_requests']) ? '1' : '0');
 
-        return $this->redirect('/admin/settings/api', ['success' => 'API settings saved.']);
+        return $this->redirect('/admin/settings?tab=api', ['success' => 'API settings saved.']);
     }
 
     /**
@@ -226,13 +233,14 @@ class SettingsController extends Controller
      */
     public function dev(): string
     {
-        $settings = $this->loadSettings('dev_');
+        $_GET['tab'] = 'dev';
+        $settings = $this->loadSettings();
 
-        // Also include APP_DEBUG and APP_ENV
-        $settings['app_debug'] = $this->getSetting('app_debug', $_ENV['APP_DEBUG'] ?? '0');
-        $settings['app_env']   = $this->getSetting('app_env', $_ENV['APP_ENV'] ?? 'production');
+        // Also include APP_DEBUG and APP_ENV defaults
+        $settings['app_debug'] = $settings['app_debug'] ?? ($_ENV['APP_DEBUG'] ?? '0');
+        $settings['app_env']   = $settings['app_env'] ?? ($_ENV['APP_ENV'] ?? 'production');
 
-        return $this->view('admin/settings/dev', [
+        return $this->view('admin/settings/index', [
             'settings' => $settings,
         ], 'layouts.admin');
     }
@@ -254,7 +262,7 @@ class SettingsController extends Controller
             : 'error');
         $this->saveSetting('dev_error_reporting', !empty($_POST['dev_error_reporting']) ? '1' : '0');
 
-        return $this->redirect('/admin/settings/dev', ['success' => 'Development settings saved.']);
+        return $this->redirect('/admin/settings?tab=dev', ['success' => 'Development settings saved.']);
     }
 
     /**
@@ -262,9 +270,10 @@ class SettingsController extends Controller
      */
     public function site(): string
     {
-        $settings = $this->loadSettings('site_');
+        $_GET['tab'] = 'site';
+        $settings = $this->loadSettings();
 
-        return $this->view('admin/settings/site', [
+        return $this->view('admin/settings/index', [
             'settings' => $settings,
         ], 'layouts.admin');
     }
@@ -281,8 +290,9 @@ class SettingsController extends Controller
         ]);
 
         if (!empty($errors)) {
-            return $this->view('admin/settings/site', [
-                'settings' => $_POST,
+            $_GET['tab'] = 'site';
+            return $this->view('admin/settings/index', [
+                'settings' => array_merge($this->loadSettings(), $_POST),
                 'errors'   => $errors,
             ], 'layouts.admin');
         }
@@ -341,7 +351,7 @@ class SettingsController extends Controller
         $this->saveSetting('site_terms_url', trim($_POST['site_terms_url'] ?? ''));
         $this->saveSetting('site_privacy_url', trim($_POST['site_privacy_url'] ?? ''));
 
-        return $this->redirect('/admin/settings/site', ['success' => 'Site information saved.']);
+        return $this->redirect('/admin/settings?tab=site', ['success' => 'Site information saved.']);
     }
 
     // -------------------------------------------------------------------------

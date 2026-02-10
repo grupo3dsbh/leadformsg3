@@ -115,6 +115,71 @@ class ClientsController extends Controller
     }
 
     /**
+     * Show the create form for a new tenant.
+     */
+    public function create(): string
+    {
+        $plans = $this->db()->query(
+            "SELECT id, name FROM plans WHERE is_active = 1 ORDER BY sort_order ASC"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+
+        return $this->view('admin/clients/create', [
+            'plans' => $plans,
+        ], 'layouts.admin');
+    }
+
+    /**
+     * Store a new tenant.
+     */
+    public function store(): string
+    {
+        $errors = $this->validate($_POST, [
+            'name'    => 'required|string|max:255',
+            'slug'    => 'required|string|max:100',
+            'email'   => 'required|email',
+            'plan_id' => 'required|integer',
+        ]);
+
+        if (!empty($errors)) {
+            $plans = $this->db()->query(
+                "SELECT id, name FROM plans WHERE is_active = 1 ORDER BY sort_order ASC"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+
+            return $this->view('admin/clients/create', [
+                'plans'  => $plans,
+                'errors' => $errors,
+                'old'    => $_POST,
+            ], 'layouts.admin');
+        }
+
+        // Check slug uniqueness
+        $existing = $this->tenantModel->findBy('slug', $_POST['slug']);
+        if ($existing) {
+            $plans = $this->db()->query(
+                "SELECT id, name FROM plans WHERE is_active = 1 ORDER BY sort_order ASC"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+
+            return $this->view('admin/clients/create', [
+                'plans'  => $plans,
+                'errors' => ['slug' => ['This slug is already in use.']],
+                'old'    => $_POST,
+            ], 'layouts.admin');
+        }
+
+        $this->db()->prepare(
+            "INSERT INTO tenants (name, slug, email, plan_id, status, created_at, updated_at)
+             VALUES (:name, :slug, :email, :plan_id, 'active', NOW(), NOW())"
+        )->execute([
+            'name'    => trim($_POST['name']),
+            'slug'    => trim($_POST['slug']),
+            'email'   => trim($_POST['email']),
+            'plan_id' => (int) $_POST['plan_id'],
+        ]);
+
+        return $this->redirect('/admin/clients', ['success' => 'Client created successfully.']);
+    }
+
+    /**
      * Show detailed view of a single tenant.
      */
     public function show(string $id): string
@@ -190,7 +255,7 @@ class ClientsController extends Controller
             'subscription'  => $subscription,
             'payments'      => $payments,
             'auditLogs'     => $auditLogs,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -211,7 +276,7 @@ class ClientsController extends Controller
         return $this->view('admin/clients/edit', [
             'tenant' => $tenant,
             'plans'  => $plans,
-        ]);
+        ], 'layouts.admin');
     }
 
     /**
@@ -237,7 +302,7 @@ class ClientsController extends Controller
                 'tenant' => array_merge($tenant, $_POST),
                 'plans'  => $this->db()->query("SELECT id, name FROM plans WHERE is_active = 1 ORDER BY sort_order ASC")->fetchAll(\PDO::FETCH_ASSOC),
                 'errors' => $errors,
-            ]);
+            ], 'layouts.admin');
         }
 
         // Check slug uniqueness

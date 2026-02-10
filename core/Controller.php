@@ -305,27 +305,24 @@ abstract class Controller
     // ------------------------------------------------------------------
 
     /**
-     * Validate input against the given rules. Returns validated data on
-     * success, or throws a ValidationException on failure.
+     * Validate input data against the given rules.
      *
-     * @param array<string, string|list<string>> $rules
-     * @return array Validated and sanitised data.
+     * Returns an empty array on success, or an array of error messages on failure.
+     * All controllers call this as: $errors = $this->validate($data, $rules)
      *
-     * @throws \Core\Exceptions\ValidationException
+     * @param array $data   Input data to validate (typically $_POST).
+     * @param array $rules  Validation rules (field => 'rule|rule:param').
+     * @return array Empty on success, error messages grouped by field on failure.
      */
-    protected function validate(array $rules, ?array $data = null): array
+    protected function validate(array $data, array $rules): array
     {
-        $data      = $data ?? $this->allInput();
         $validator = new Validator($data, $rules);
 
         if (!$validator->passes()) {
-            $exception = new \Core\Exceptions\ValidationException('Validation failed.');
-            $exception->setErrors($validator->errors());
-
-            throw $exception;
+            return $validator->errors();
         }
 
-        return $validator->validated();
+        return [];
     }
 
     // ------------------------------------------------------------------
