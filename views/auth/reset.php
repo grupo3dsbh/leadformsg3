@@ -155,7 +155,7 @@ unset($_SESSION['_flash']['error'], $_SESSION['_flash']['errors']);
                     autofocus
                 >
                 <?php if (!empty($errors['password'])): ?>
-                    <div class="form-error"><?= e($errors['password']) ?></div>
+                    <div class="form-error"><?= e($errors['password'][0] ?? $errors['password']) ?></div>
                 <?php endif; ?>
                 <div class="password-requirements">
                     Use pelo menos 8 caracteres com letras e numeros.
@@ -174,7 +174,7 @@ unset($_SESSION['_flash']['error'], $_SESSION['_flash']['errors']);
                     minlength="8"
                 >
                 <?php if (!empty($errors['password_confirmation'])): ?>
-                    <div class="form-error"><?= e($errors['password_confirmation']) ?></div>
+                    <div class="form-error"><?= e($errors['password_confirmation'][0] ?? $errors['password_confirmation']) ?></div>
                 <?php endif; ?>
             </div>
 

@@ -902,7 +902,7 @@ $user = auth();
                         <div class="mockup-dot"></div>
                         <div class="mockup-dot"></div>
                         <div class="mockup-dot"></div>
-                        <div class="mockup-url">leadform.com/f/meu-formulario</div>
+                        <div class="mockup-url"><?= htmlspecialchars($_SERVER['HTTP_HOST'] ?? 'seusite.com') ?>/f/meu-formulario</div>
                     </div>
                     <div class="mockup-body">
                         <div class="mockup-progress">

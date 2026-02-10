@@ -234,7 +234,7 @@ unset($_SESSION['_flash']['error'], $_SESSION['_flash']['errors'], $_SESSION['_f
                     autofocus
                 >
                 <?php if (!empty($errors['email'])): ?>
-                    <div class="form-error"><?= e($errors['email']) ?></div>
+                    <div class="form-error"><?= e($errors['email'][0] ?? $errors['email']) ?></div>
                 <?php endif; ?>
             </div>
 
@@ -250,7 +250,7 @@ unset($_SESSION['_flash']['error'], $_SESSION['_flash']['errors'], $_SESSION['_f
                     minlength="6"
                 >
                 <?php if (!empty($errors['password'])): ?>
-                    <div class="form-error"><?= e($errors['password']) ?></div>
+                    <div class="form-error"><?= e($errors['password'][0] ?? $errors['password']) ?></div>
                 <?php endif; ?>
             </div>
 

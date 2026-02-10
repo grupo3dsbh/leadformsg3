@@ -41,10 +41,10 @@ class AuthController extends Controller
             $this->redirectAuthenticatedUser();
         }
 
-        return $this->view('auth/login', [
-            'title'    => 'Login',
-            'intended' => $_SESSION['url.intended'] ?? '/dashboard',
-        ]);
+        return $this->view('auth.login', [
+            'pageTitle' => 'Login',
+            'intended'  => $_SESSION['url.intended'] ?? '/dashboard',
+        ], 'layouts.auth');
     }
 
     /**
@@ -127,10 +127,10 @@ class AuthController extends Controller
             $this->redirectAuthenticatedUser();
         }
 
-        return $this->view('auth/register', [
-            'title' => 'Create Account',
-            'plans' => $this->getAvailablePlans(),
-        ]);
+        return $this->view('auth.register', [
+            'pageTitle' => 'Criar Conta',
+            'plans'     => $this->getAvailablePlans(),
+        ], 'layouts.auth');
     }
 
     /**
@@ -265,9 +265,9 @@ class AuthController extends Controller
      */
     public function forgotForm(): string
     {
-        return $this->view('auth/forgot-password', [
-            'title' => 'Forgot Password',
-        ]);
+        return $this->view('auth.forgot', [
+            'pageTitle' => 'Esqueci minha Senha',
+        ], 'layouts.auth');
     }
 
     /**
@@ -316,11 +316,11 @@ class AuthController extends Controller
             return $this->redirect('/login');
         }
 
-        return $this->view('auth/reset-password', [
-            'title' => 'Reset Password',
-            'token' => $token,
-            'email' => $email,
-        ]);
+        return $this->view('auth.reset', [
+            'pageTitle' => 'Redefinir Senha',
+            'token'     => $token,
+            'email'     => $email,
+        ], 'layouts.auth');
     }
 
     /**
@@ -432,9 +432,9 @@ class AuthController extends Controller
             return $this->redirect('/login');
         }
 
-        return $this->view('auth/two-factor', [
-            'title' => 'Two-Factor Authentication',
-        ]);
+        return $this->view('auth.two-factor', [
+            'pageTitle' => 'Autenticacao de Dois Fatores',
+        ], 'layouts.auth');
     }
 
     /**

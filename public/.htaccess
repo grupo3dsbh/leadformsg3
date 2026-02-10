@@ -1,0 +1,27 @@
+# Allow all files in this directory to be served directly
+<IfModule mod_rewrite.c>
+    RewriteEngine Off
+</IfModule>
+
+# Enable directory listing prevention
+Options -Indexes
+
+# Set correct MIME types
+<IfModule mod_mime.c>
+    AddType text/css .css
+    AddType application/javascript .js
+    AddType image/svg+xml .svg
+    AddType image/png .png
+    AddType image/jpeg .jpg .jpeg
+    AddType image/gif .gif
+    AddType image/webp .webp
+    AddType image/x-icon .ico
+    AddType font/woff2 .woff2
+    AddType font/woff .woff
+    AddType font/ttf .ttf
+</IfModule>
+
+# Allow access to all files
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>

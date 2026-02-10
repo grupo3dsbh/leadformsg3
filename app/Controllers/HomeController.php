@@ -32,14 +32,13 @@ class HomeController extends Controller
         $testimonials = $this->getTestimonials();
         $stats       = $this->getPlatformStats();
 
-        return $this->view('home/index', [
-            'title'        => $this->getPageTitle('Conversational Form Builder'),
-            'description'  => 'Create beautiful conversational forms that convert. Drag-and-drop builder, integrations, analytics and more.',
+        return $this->view('home.index', [
+            'pageTitle'    => 'Formularios Conversacionais Inteligentes',
             'features'     => $features,
             'plans'        => $plans,
             'testimonials' => $testimonials,
             'stats'        => $stats,
-        ]);
+        ], 'layouts.app');
     }
 
     // ==================================================================
@@ -57,12 +56,11 @@ class HomeController extends Controller
         $plans = $this->getAllActivePlans();
         $faqs  = $this->getPricingFaqs();
 
-        return $this->view('home/pricing', [
-            'title'       => $this->getPageTitle('Pricing'),
-            'description' => 'Simple, transparent pricing. Start free and scale as you grow.',
+        return $this->view('home.pricing', [
+            'pageTitle'   => 'Planos e Precos',
             'plans'       => $plans,
             'faqs'        => $faqs,
-        ]);
+        ], 'layouts.app');
     }
 
     // ==================================================================
@@ -77,12 +75,11 @@ class HomeController extends Controller
         $features   = $this->getAllFeatures();
         $categories = $this->getFeatureCategories();
 
-        return $this->view('home/features', [
-            'title'       => $this->getPageTitle('Features'),
-            'description' => 'Discover all the powerful features that make our form builder the best choice for your business.',
+        return $this->view('home.features', [
+            'pageTitle'   => 'Funcionalidades',
             'features'    => $features,
             'categories'  => $categories,
-        ]);
+        ], 'layouts.app');
     }
 
     // ==================================================================
@@ -99,10 +96,9 @@ class HomeController extends Controller
             return $this->handleContactSubmission();
         }
 
-        return $this->view('home/contact', [
-            'title'       => $this->getPageTitle('Contact Us'),
-            'description' => 'Get in touch with our team. We are happy to help with any questions or feedback.',
-        ]);
+        return $this->view('home.contact', [
+            'pageTitle'   => 'Contato',
+        ], 'layouts.app');
     }
 
     // ==================================================================
@@ -116,12 +112,11 @@ class HomeController extends Controller
     {
         $content = $this->loadPageContent('terms-of-service');
 
-        return $this->view('home/legal', [
-            'title'       => $this->getPageTitle('Terms of Service'),
-            'description' => 'Read our terms of service agreement.',
-            'heading'     => 'Terms of Service',
+        return $this->view('home.legal', [
+            'pageTitle'   => 'Termos de Servico',
+            'heading'     => 'Termos de Servico',
             'content'     => $content,
-        ]);
+        ], 'layouts.app');
     }
 
     /**
@@ -131,12 +126,11 @@ class HomeController extends Controller
     {
         $content = $this->loadPageContent('privacy-policy');
 
-        return $this->view('home/legal', [
-            'title'       => $this->getPageTitle('Privacy Policy'),
-            'description' => 'Read our privacy policy to understand how we handle your data.',
-            'heading'     => 'Privacy Policy',
+        return $this->view('home.legal', [
+            'pageTitle'   => 'Politica de Privacidade',
+            'heading'     => 'Politica de Privacidade',
             'content'     => $content,
-        ]);
+        ], 'layouts.app');
     }
 
     // ==================================================================
@@ -154,9 +148,9 @@ class HomeController extends Controller
 
         if ($page === null) {
             http_response_code(404);
-            return $this->view('errors/404', [
-                'title' => $this->getPageTitle('Page Not Found'),
-            ]);
+            return $this->view('errors.404', [
+                'pageTitle' => 'Pagina nao encontrada',
+            ], 'layouts.app');
         }
 
         // Track the page view.
@@ -164,12 +158,26 @@ class HomeController extends Controller
 
         $template = $page['template'] ?? 'home/page';
 
-        return $this->view($template, [
-            'title'       => $this->getPageTitle($page['title'] ?? 'Page'),
-            'description' => $page['meta_description'] ?? '',
+        $dotTemplate = str_replace('/', '.', $template);
+        return $this->view($dotTemplate, [
+            'pageTitle'   => $page['title'] ?? 'Pagina',
             'page'        => $page,
             'content'     => $page['content'] ?? '',
-        ]);
+        ], 'layouts.app');
+    }
+
+    // ==================================================================
+    // API DOCUMENTATION
+    // ==================================================================
+
+    /**
+     * Render the API documentation page.
+     */
+    public function apiDocs(): string
+    {
+        return $this->view('api.docs', [
+            'pageTitle'   => 'Documentacao da API',
+        ], 'layouts.app');
     }
 
     // ==================================================================
@@ -395,9 +403,9 @@ class HomeController extends Controller
 
         if ($token === '' || $sessionToken === '' || !hash_equals($sessionToken, $token)) {
             $_SESSION['_flash']['error'] = 'Invalid security token. Please try again.';
-            return $this->view('home/contact', [
-                'title' => $this->getPageTitle('Contact Us'),
-            ]);
+            return $this->view('home.contact', [
+                'pageTitle' => 'Contato',
+            ], 'layouts.app');
         }
 
         $data = [
@@ -418,11 +426,11 @@ class HomeController extends Controller
             $_SESSION['_flash']['errors'] = $errors;
             $_SESSION['_flash']['old']    = $data;
 
-            return $this->view('home/contact', [
-                'title'  => $this->getPageTitle('Contact Us'),
-                'errors' => $errors,
-                'old'    => $data,
-            ]);
+            return $this->view('home.contact', [
+                'pageTitle' => 'Contato',
+                'errors'    => $errors,
+                'old'       => $data,
+            ], 'layouts.app');
         }
 
         // Store the message.
