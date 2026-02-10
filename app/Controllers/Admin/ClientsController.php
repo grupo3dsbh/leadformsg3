@@ -166,7 +166,9 @@ class ClientsController extends Controller
             ], 'layouts.admin');
         }
 
-        $this->db()->prepare(
+        $db = $this->db();
+
+        $db->prepare(
             "INSERT INTO tenants (name, slug, email, plan_id, status, created_at, updated_at)
              VALUES (:name, :slug, :email, :plan_id, 'active', NOW(), NOW())"
         )->execute([
@@ -176,7 +178,21 @@ class ClientsController extends Controller
             'plan_id' => (int) $_POST['plan_id'],
         ]);
 
-        return $this->redirect('/admin/clients', ['success' => 'Client created successfully.']);
+        $tenantId = $db->lastInsertId();
+
+        // Create a default admin user for this tenant
+        $defaultPassword = password_hash('password', PASSWORD_BCRYPT);
+        $db->prepare(
+            "INSERT INTO users (tenant_id, name, email, password, role, status, locale, timezone, email_verified_at, created_at, updated_at)
+             VALUES (:tid, :name, :email, :password, 'admin', 'active', 'pt_BR', 'America/Sao_Paulo', NOW(), NOW(), NOW())"
+        )->execute([
+            'tid'      => (int) $tenantId,
+            'name'     => trim($_POST['name']),
+            'email'    => trim($_POST['email']),
+            'password' => $defaultPassword,
+        ]);
+
+        return $this->redirect('/admin/clients', ['success' => 'Cliente criado com sucesso. Usuario admin criado com email: ' . trim($_POST['email']) . ' / senha: password']);
     }
 
     /**
@@ -402,9 +418,31 @@ class ClientsController extends Controller
         $owner = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$owner) {
-            return $this->redirect("/admin/clients/{$id}", [
-                'error' => 'No owner or admin user found for this client.',
+            // Auto-create an admin user for this tenant so we can log in
+            $db = $this->db();
+            $email = $tenant['email'] ?? ($tenant['slug'] . '@leadform.local');
+            $defaultPassword = password_hash('password', PASSWORD_BCRYPT);
+
+            $db->prepare(
+                "INSERT INTO users (tenant_id, name, email, password, role, status, locale, timezone, email_verified_at, created_at, updated_at)
+                 VALUES (:tid, :name, :email, :password, 'admin', 'active', 'pt_BR', 'America/Sao_Paulo', NOW(), NOW(), NOW())"
+            )->execute([
+                'tid'      => (int) $id,
+                'name'     => $tenant['name'],
+                'email'    => $email,
+                'password' => $defaultPassword,
             ]);
+
+            // Re-fetch the newly created user
+            $stmt = $db->prepare("SELECT * FROM users WHERE tenant_id = :tid ORDER BY id DESC LIMIT 1");
+            $stmt->execute(['tid' => (int) $id]);
+            $owner = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$owner) {
+                return $this->redirect("/admin/clients/{$id}", [
+                    'error' => 'Nao foi possivel criar usuario para este cliente.',
+                ]);
+            }
         }
 
         // Preserve original admin session for returning later
