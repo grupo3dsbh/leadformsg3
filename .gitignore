@@ -1,0 +1,32 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Storage
+/storage/logs/*
+/storage/cache/*
+!storage/logs/.gitkeep
+!storage/cache/.gitkeep
+
+# Uploads
+/public/uploads/*
+!public/uploads/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled
+*.map

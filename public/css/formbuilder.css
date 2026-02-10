@@ -1,0 +1,652 @@
+/**
+ * LeadForm SaaS - Form Builder Styles
+ */
+
+/* ============================================
+   BUILDER LAYOUT
+   ============================================ */
+.builder-layout {
+    display: flex;
+    height: calc(100vh - var(--header-height, 56px));
+    overflow: hidden;
+    background: var(--gray-100);
+}
+
+/* ============================================
+   BUILDER TOOLBAR
+   ============================================ */
+.builder-toolbar {
+    height: 56px;
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.builder-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.builder-toolbar-back {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: var(--gray-100);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--gray-600);
+    transition: all var(--transition-fast);
+}
+
+.builder-toolbar-back:hover {
+    background: var(--gray-200);
+}
+
+.builder-toolbar-name {
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    background: none;
+    outline: none;
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
+    color: var(--gray-900);
+    min-width: 200px;
+}
+
+.builder-toolbar-name:focus {
+    background: var(--gray-50);
+    box-shadow: 0 0 0 2px var(--primary-200);
+}
+
+.builder-dirty-indicator {
+    display: none;
+    width: 8px;
+    height: 8px;
+    background: var(--warning);
+    border-radius: 50%;
+}
+
+.builder-toolbar-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.builder-field-count {
+    font-size: 13px;
+    color: var(--gray-400);
+    padding: 4px 12px;
+    background: var(--gray-100);
+    border-radius: var(--radius-full);
+}
+
+.builder-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ============================================
+   PALETTE (Left Panel)
+   ============================================ */
+.builder-palette {
+    width: 260px;
+    background: #fff;
+    border-right: 1px solid var(--gray-200);
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.palette-search {
+    padding: 12px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.palette-search input {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    outline: none;
+}
+
+.palette-search input:focus {
+    border-color: var(--primary);
+}
+
+.palette-category {
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.palette-category-header {
+    padding: 10px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--gray-500);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background var(--transition-fast);
+}
+
+.palette-category-header:hover {
+    background: var(--gray-50);
+}
+
+.palette-toggle {
+    font-size: 10px;
+    color: var(--gray-400);
+}
+
+.palette-items {
+    padding: 4px 8px 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    transition: max-height var(--transition-base), opacity var(--transition-base);
+}
+
+.palette-items.collapsed {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 8px;
+}
+
+.palette-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    cursor: grab;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.palette-item:hover {
+    border-color: var(--primary-200);
+    background: var(--primary-50);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.palette-item:active {
+    cursor: grabbing;
+}
+
+.palette-item.dragging {
+    opacity: 0.5;
+}
+
+.palette-item-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.palette-item-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray-700);
+    line-height: 1.2;
+}
+
+/* ============================================
+   CANVAS (Center)
+   ============================================ */
+.builder-canvas {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.canvas-fields {
+    max-width: 700px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 400px;
+}
+
+.canvas-field {
+    background: #fff;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    overflow: hidden;
+}
+
+.canvas-field:hover {
+    border-color: var(--gray-300);
+    box-shadow: var(--shadow-sm);
+}
+
+.canvas-field.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-100);
+}
+
+.canvas-field-ghost {
+    opacity: 0.4;
+    border-style: dashed;
+}
+
+.canvas-field-chosen {
+    box-shadow: var(--shadow-lg);
+}
+
+.canvas-field-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 13px;
+}
+
+.canvas-field-drag {
+    cursor: grab;
+    color: var(--gray-400);
+    font-size: 14px;
+    padding: 2px 4px;
+}
+
+.canvas-field-drag:active {
+    cursor: grabbing;
+}
+
+.canvas-field-icon {
+    font-size: 16px;
+}
+
+.canvas-field-type {
+    font-weight: 600;
+    color: var(--gray-600);
+    font-size: 12px;
+}
+
+.canvas-field-required {
+    color: var(--danger);
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.canvas-field-logic-badge {
+    font-size: 14px;
+    color: var(--warning);
+}
+
+.canvas-field-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.canvas-field:hover .canvas-field-actions {
+    opacity: 1;
+}
+
+.canvas-field-body {
+    padding: 12px 16px;
+}
+
+.canvas-field-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+}
+
+.canvas-field-description {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-bottom: 8px;
+}
+
+.canvas-field-message {
+    padding: 6px 16px 10px;
+    font-size: 12px;
+    color: var(--primary);
+    background: var(--primary-50);
+    border-top: 1px solid var(--primary-100);
+}
+
+/* Field Previews */
+.preview-input {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    color: var(--gray-400);
+    font-size: 13px;
+    background: var(--gray-50);
+}
+
+.preview-flag {
+    margin-right: 4px;
+}
+
+.preview-textarea {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    color: var(--gray-400);
+    font-size: 13px;
+    background: var(--gray-50);
+    min-height: 50px;
+}
+
+.preview-options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.preview-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+.preview-radio {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--gray-300);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.preview-checkbox {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--gray-300);
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.preview-option-more {
+    font-size: 12px;
+    color: var(--gray-400);
+    padding-left: 22px;
+}
+
+.preview-rating {
+    font-size: 20px;
+    color: var(--gray-300);
+    letter-spacing: 4px;
+}
+
+.preview-scale {
+    display: flex;
+    gap: 4px;
+}
+
+.preview-scale span {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+.preview-upload {
+    padding: 16px;
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--radius-md);
+    text-align: center;
+    color: var(--gray-400);
+    font-size: 13px;
+}
+
+.preview-signature {
+    padding: 20px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    text-align: center;
+    color: var(--gray-400);
+    font-size: 13px;
+    background: var(--gray-50);
+}
+
+.preview-divider {
+    border: none;
+    border-top: 2px solid var(--gray-200);
+    margin: 8px 0;
+}
+
+.preview-section-break {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-700);
+    padding: 8px 0;
+    border-bottom: 2px solid var(--primary-200);
+}
+
+.preview-paragraph {
+    font-size: 13px;
+    color: var(--gray-500);
+    line-height: 1.5;
+    font-style: italic;
+}
+
+.preview-hidden {
+    font-size: 12px;
+    color: var(--gray-400);
+    font-style: italic;
+    padding: 6px 10px;
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+}
+
+/* Empty state */
+.canvas-empty {
+    text-align: center;
+    padding: 80px 40px;
+    color: var(--gray-400);
+}
+
+.canvas-empty-icon {
+    font-size: 64px;
+    opacity: 0.3;
+    margin-bottom: 16px;
+}
+
+.canvas-empty h3 {
+    color: var(--gray-600);
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.canvas-empty p {
+    font-size: 14px;
+}
+
+.canvas-dragover {
+    background: var(--primary-50) !important;
+}
+
+.canvas-dragover .canvas-empty {
+    border: 2px dashed var(--primary-300);
+    border-radius: var(--radius-xl);
+    background: rgba(79, 70, 229, 0.05);
+}
+
+/* ============================================
+   SETTINGS PANEL (Right)
+   ============================================ */
+.builder-settings {
+    width: 320px;
+    background: #fff;
+    border-left: 1px solid var(--gray-200);
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.settings-empty {
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--gray-400);
+    font-size: 14px;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gray-100);
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 10;
+}
+
+.settings-icon {
+    font-size: 20px;
+}
+
+.settings-title {
+    font-size: 14px;
+    font-weight: 700;
+    flex: 1;
+}
+
+.settings-body {
+    padding: 0;
+}
+
+.settings-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.settings-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--gray-500);
+    margin-bottom: 12px;
+}
+
+.settings-body .form-group {
+    margin-bottom: 12px;
+}
+
+.settings-body .form-label {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.settings-body .form-input,
+.settings-body .form-select,
+.settings-body .form-textarea {
+    font-size: 13px;
+    padding: 7px 10px;
+}
+
+/* Options editor */
+.options-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.option-drag {
+    cursor: grab;
+    color: var(--gray-400);
+    font-size: 12px;
+}
+
+.option-remove {
+    padding: 2px 6px;
+    font-size: 14px;
+}
+
+/* Logic rules */
+.logic-rule {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+}
+
+.logic-rule select,
+.logic-rule input {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1200px) {
+    .builder-settings {
+        width: 280px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .builder-palette {
+        width: 200px;
+    }
+
+    .palette-items {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .builder-layout {
+        flex-direction: column;
+    }
+
+    .builder-palette,
+    .builder-settings {
+        width: 100%;
+        max-height: 40vh;
+    }
+}

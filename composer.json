@@ -1,0 +1,21 @@
+{
+    "name": "grupo3dsbh/leadform-saas",
+    "description": "LeadForm SaaS - Conversational Form Builder Platform",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Core\\": "core/",
+            "App\\": "app/"
+        },
+        "files": [
+            "app/Helpers/functions.php"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

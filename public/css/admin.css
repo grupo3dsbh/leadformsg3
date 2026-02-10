@@ -1,0 +1,500 @@
+/**
+ * LeadForm SaaS - Admin Panel Styles
+ * Sidebar + Top bar + Content layout
+ */
+
+/* ============================================
+   ADMIN LAYOUT
+   ============================================ */
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    background: var(--gray-50);
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--gray-900);
+    color: #fff;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: var(--z-fixed);
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--transition-base);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.sidebar-header {
+    padding: var(--space-5) var(--space-5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+}
+
+.sidebar-logo {
+    width: 36px;
+    height: 36px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+}
+
+.sidebar-brand {
+    font-size: var(--font-size-lg);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.sidebar-brand span {
+    color: var(--primary-light);
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: var(--space-4) 0;
+}
+
+.sidebar-section {
+    margin-bottom: var(--space-6);
+}
+
+.sidebar-section-title {
+    padding: 0 var(--space-5);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: var(--space-2);
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 9px var(--space-5);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    border-left: 3px solid transparent;
+    text-decoration: none;
+}
+
+.sidebar-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-link.active {
+    color: #fff;
+    background: rgba(79, 70, 229, 0.15);
+    border-left-color: var(--primary-light);
+}
+
+.sidebar-link .icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.sidebar-link .badge {
+    margin-left: auto;
+    font-size: 10px;
+    padding: 1px 7px;
+    background: var(--primary);
+    color: #fff;
+}
+
+.sidebar-submenu {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height var(--transition-base);
+}
+
+.sidebar-submenu.open {
+    max-height: 500px;
+}
+
+.sidebar-submenu .sidebar-link {
+    padding-left: calc(var(--space-5) + 32px);
+    font-size: var(--font-size-xs);
+}
+
+.sidebar-footer {
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.sidebar-user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-user-name {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-user-role {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ============================================
+   TOP BAR
+   ============================================ */
+.topbar {
+    height: var(--header-height);
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-6);
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.topbar-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--gray-600);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.topbar-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--gray-400);
+}
+
+.topbar-breadcrumb a {
+    color: var(--gray-400);
+}
+
+.topbar-breadcrumb a:hover {
+    color: var(--primary);
+}
+
+.topbar-breadcrumb .separator {
+    color: var(--gray-300);
+}
+
+.topbar-breadcrumb .current {
+    color: var(--gray-700);
+    font-weight: 600;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.topbar-search {
+    position: relative;
+}
+
+.topbar-search input {
+    width: 240px;
+    padding: 8px 12px 8px 36px;
+    font-size: var(--font-size-sm);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--gray-50);
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+.topbar-search input:focus {
+    width: 320px;
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--primary-100);
+}
+
+.topbar-search .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-400);
+    font-size: 14px;
+}
+
+.topbar-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    border: none;
+    background: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-size: 20px;
+}
+
+.topbar-btn:hover {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.topbar-btn .notification-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: var(--danger);
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+/* ============================================
+   PAGE CONTENT
+   ============================================ */
+.page-content {
+    flex: 1;
+    padding: var(--space-6);
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+    gap: var(--space-4);
+}
+
+.page-title {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    color: var(--gray-900);
+}
+
+.page-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--gray-500);
+    margin-top: var(--space-1);
+}
+
+.page-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--gray-200);
+    margin-bottom: var(--space-6);
+}
+
+.tab {
+    padding: 10px 20px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--gray-500);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+.tab:hover {
+    color: var(--gray-700);
+}
+
+.tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+/* ============================================
+   FILTERS BAR
+   ============================================ */
+.filters-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: #fff;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--gray-200);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+}
+
+.filter-search {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    outline: none;
+}
+
+.filter-search input:focus {
+    border-color: var(--primary);
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+    background: #fff;
+    outline: none;
+    cursor: pointer;
+}
+
+/* ============================================
+   IMPERSONATE BANNER
+   ============================================ */
+.impersonate-banner {
+    background: var(--warning);
+    color: var(--gray-900);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.impersonate-banner a {
+    color: var(--gray-900);
+    text-decoration: underline;
+}
+
+/* ============================================
+   MOBILE SIDEBAR
+   ============================================ */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-fixed) - 1);
+}
+
+@media (max-width: 1024px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .topbar-toggle {
+        display: block;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-content {
+        padding: var(--space-4);
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filters-bar {
+        flex-direction: column;
+    }
+
+    .filter-search {
+        width: 100%;
+    }
+}
