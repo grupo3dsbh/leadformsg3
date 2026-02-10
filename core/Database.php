@@ -83,6 +83,14 @@ class Database
     // ------------------------------------------------------------------
 
     /**
+     * Prepare a statement without executing it.
+     */
+    public function prepare(string $sql): \PDOStatement
+    {
+        return $this->pdo->prepare($sql);
+    }
+
+    /**
      * Execute a raw SQL query with optional bindings.
      */
     public function query(string $sql, array $params = []): \PDOStatement
