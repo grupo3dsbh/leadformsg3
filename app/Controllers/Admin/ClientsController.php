@@ -396,7 +396,7 @@ class ClientsController extends Controller
 
         // Find the tenant admin/owner user directly (tenants table has no owner_id column)
         $stmt = $this->db()->prepare(
-            "SELECT * FROM users WHERE tenant_id = :tid AND role IN ('admin','owner') ORDER BY id ASC LIMIT 1"
+            "SELECT * FROM users WHERE tenant_id = :tid ORDER BY id ASC LIMIT 1"
         );
         $stmt->execute(['tid' => (int) $id]);
         $owner = $stmt->fetch(\PDO::FETCH_ASSOC);

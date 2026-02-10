@@ -123,22 +123,23 @@ abstract class Controller
     /**
      * Return a Response configured for JSON output.
      */
-    protected function json(mixed $data, int $statusCode = 200, array $headers = []): Response
+    protected function json(mixed $data, int $statusCode = 200, array $headers = []): string
     {
-        $response = new Response();
-        $response->setStatusCode($statusCode);
+        http_response_code($statusCode);
+        header('Content-Type: application/json; charset=utf-8');
 
         foreach ($headers as $key => $value) {
-            $response->setHeader($key, $value);
+            header("{$key}: {$value}");
         }
 
-        return $response->json($data);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     }
 
     /**
      * Shorthand for a successful JSON payload.
      */
-    protected function jsonSuccess(mixed $data = null, string $message = 'OK', int $code = 200): Response
+    protected function jsonSuccess(mixed $data = null, string $message = 'OK', int $code = 200): string
     {
         return $this->json([
             'success' => true,
@@ -150,7 +151,7 @@ abstract class Controller
     /**
      * Shorthand for an error JSON payload.
      */
-    protected function jsonError(string $message = 'Error', int $code = 400, mixed $errors = null): Response
+    protected function jsonError(string $message = 'Error', int $code = 400, mixed $errors = null): string
     {
         $payload = [
             'success' => false,
@@ -171,7 +172,7 @@ abstract class Controller
     /**
      * Redirect to a given URL, optionally with flash session data.
      */
-    protected function redirect(string $url, array $flash = []): Response
+    protected function redirect(string $url, array $flash = []): string
     {
         // Store flash data in session for next request
         if (!empty($flash)) {
@@ -181,15 +182,16 @@ abstract class Controller
             $_SESSION['_flash'] = array_merge($_SESSION['_flash'] ?? [], $flash);
         }
 
-        return (new Response())
-            ->setStatusCode(302)
-            ->redirect($url);
+        // Send redirect headers and exit immediately
+        http_response_code(302);
+        header("Location: {$url}");
+        exit;
     }
 
     /**
      * Redirect back to the previous page (uses the Referer header).
      */
-    protected function back(): Response
+    protected function back(): string
     {
         $referer = $_SERVER['HTTP_REFERER'] ?? '/';
 
