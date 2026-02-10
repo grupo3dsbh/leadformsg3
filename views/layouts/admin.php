@@ -75,7 +75,7 @@ $impersonating = $impersonating ?? null;
 
                     <!-- Breadcrumb -->
                     <div class="topbar-breadcrumb">
-                        <a href="/admin/dashboard">Admin</a>
+                        <a href="/admin">Admin</a>
                         <?php foreach ($breadcrumb as $crumb): ?>
                             <span class="separator">/</span>
                             <?php if (!empty($crumb['url'])): ?>

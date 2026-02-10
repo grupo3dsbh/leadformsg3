@@ -263,7 +263,7 @@ class PlansController extends Controller
      *
      * Will not allow deletion if tenants are still subscribed to it.
      */
-    public function delete(string $id): string
+    public function destroy(string $id): string
     {
         $plan = $this->planModel->find((int) $id);
 

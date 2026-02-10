@@ -117,7 +117,7 @@ class DashboardController extends Controller
         // --- Recent activity (latest entries) -----------------------------------
 
         $stmt = $db->prepare(
-            "SELECT fe.id, fe.data, fe.created_at, fe.ip_address,
+            "SELECT fe.id, fe.status, fe.created_at, fe.ip_address,
                     f.title AS form_title, f.id AS form_id
                FROM entries fe
                JOIN forms f ON f.id = fe.form_id
@@ -128,17 +128,14 @@ class DashboardController extends Controller
         $stmt->execute(['tid' => $tenantId]);
         $recentEntries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Decode data for preview
+        // Get preview from entry_values for each entry
         foreach ($recentEntries as &$entry) {
-            $decoded = json_decode($entry['data'] ?? '{}', true) ?: [];
-            // Show first meaningful field value as preview
-            $entry['preview'] = '';
-            foreach ($decoded as $value) {
-                if (is_string($value) && trim($value) !== '') {
-                    $entry['preview'] = mb_substr(trim($value), 0, 80);
-                    break;
-                }
-            }
+            $pvStmt = $db->prepare(
+                "SELECT value FROM entry_values WHERE entry_id = :eid LIMIT 1"
+            );
+            $pvStmt->execute(['eid' => (int) $entry['id']]);
+            $firstValue = $pvStmt->fetchColumn();
+            $entry['preview'] = $firstValue ? mb_substr(trim((string)$firstValue), 0, 80) : '';
         }
         unset($entry);
 
@@ -152,7 +149,12 @@ class DashboardController extends Controller
             $plan = $stmt->fetch(\PDO::FETCH_ASSOC);
         }
 
-        $limits = $plan ? (json_decode($plan['limits'] ?? '{}', true) ?: []) : [];
+        $limits = $plan ? [
+            'max_forms' => (int) ($plan['max_forms'] ?? 0),
+            'max_entries_per_month' => (int) ($plan['max_entries_per_month'] ?? 0),
+            'max_users' => (int) ($plan['max_users'] ?? 0),
+            'max_file_storage' => (int) ($plan['max_file_storage'] ?? 0),
+        ] : [];
 
         return $this->view('client/dashboard', [
             'totalForms'      => $totalForms,
@@ -167,6 +169,6 @@ class DashboardController extends Controller
             'plan'            => $plan,
             'limits'          => $limits,
             'tenant'          => $tenantData,
-        ]);
+        ], 'layouts.client');
     }
 }

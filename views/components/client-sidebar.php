@@ -32,17 +32,17 @@
         <div class="sidebar-section">
             <div class="sidebar-section-title">Formularios</div>
 
-            <a href="/client/dashboard" class="sidebar-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
+            <a href="/dashboard" class="sidebar-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
                 <span class="icon">&#9634;</span>
                 <span>Dashboard</span>
             </a>
-            <a href="/client/forms" class="sidebar-link <?= $currentPage === 'forms' ? 'active' : '' ?>">
+            <a href="/dashboard/forms" class="sidebar-link <?= $currentPage === 'forms' ? 'active' : '' ?>">
                 <span class="icon">&#9776;</span>
                 <span>Meus Formularios</span>
             </a>
-            <a href="/client/entries" class="sidebar-link <?= $currentPage === 'entries' ? 'active' : '' ?>">
+            <a href="/dashboard/leads" class="sidebar-link <?= $currentPage === 'leads' ? 'active' : '' ?>">
                 <span class="icon">&#9993;</span>
-                <span>Entradas</span>
+                <span>Leads</span>
             </a>
         </div>
 
@@ -50,29 +50,28 @@
         <div class="sidebar-section">
             <div class="sidebar-section-title">Equipe</div>
 
-            <a href="/client/users" class="sidebar-link <?= $currentPage === 'users' ? 'active' : '' ?>">
+            <!-- Users/Permissions routes not yet implemented -->
+            <!--
+            <a href="/dashboard/users" class="sidebar-link <?= $currentPage === 'users' ? 'active' : '' ?>">
                 <span class="icon">&#9787;</span>
                 <span>Usuarios</span>
             </a>
-            <a href="/client/permissions" class="sidebar-link <?= $currentPage === 'permissions' ? 'active' : '' ?>">
-                <span class="icon">&#128274;</span>
-                <span>Permissoes</span>
-            </a>
+            -->
         </div>
 
         <!-- INTEGRACOES -->
         <div class="sidebar-section">
             <div class="sidebar-section-title">Integracoes</div>
 
-            <a href="/client/integrations" class="sidebar-link <?= $currentPage === 'integrations' ? 'active' : '' ?>">
+            <a href="/dashboard/integrations" class="sidebar-link <?= $currentPage === 'integrations' ? 'active' : '' ?>">
                 <span class="icon">&#128268;</span>
                 <span>Integracoes</span>
             </a>
-            <a href="/client/webhooks" class="sidebar-link <?= $currentPage === 'webhooks' ? 'active' : '' ?>">
+            <a href="/dashboard/webhooks" class="sidebar-link <?= $currentPage === 'webhooks' ? 'active' : '' ?>">
                 <span class="icon">&#128279;</span>
                 <span>Webhooks</span>
             </a>
-            <a href="/client/pixels" class="sidebar-link <?= $currentPage === 'pixels' ? 'active' : '' ?>">
+            <a href="/dashboard/pixels" class="sidebar-link <?= $currentPage === 'pixels' ? 'active' : '' ?>">
                 <span class="icon">&#127919;</span>
                 <span>Pixels &amp; Tags</span>
             </a>
@@ -82,19 +81,19 @@
         <div class="sidebar-section">
             <div class="sidebar-section-title">Configuracoes</div>
 
-            <a href="/client/profile" class="sidebar-link <?= $currentPage === 'profile' ? 'active' : '' ?>">
+            <a href="/dashboard/profile" class="sidebar-link <?= $currentPage === 'profile' ? 'active' : '' ?>">
                 <span class="icon">&#9787;</span>
                 <span>Perfil</span>
             </a>
-            <a href="/client/security" class="sidebar-link <?= $currentPage === 'security' ? 'active' : '' ?>">
+            <a href="/dashboard/security" class="sidebar-link <?= $currentPage === 'security' ? 'active' : '' ?>">
                 <span class="icon">&#128737;</span>
                 <span>Seguranca</span>
             </a>
-            <a href="/client/api-tokens" class="sidebar-link <?= $currentPage === 'api-tokens' ? 'active' : '' ?>">
+            <a href="/dashboard/api-keys" class="sidebar-link <?= $currentPage === 'api-keys' ? 'active' : '' ?>">
                 <span class="icon">&#128273;</span>
                 <span>API &amp; Tokens</span>
             </a>
-            <a href="/client/ai" class="sidebar-link <?= $currentPage === 'ai' ? 'active' : '' ?>">
+            <a href="/dashboard/ai-settings" class="sidebar-link <?= $currentPage === 'ai-settings' ? 'active' : '' ?>">
                 <span class="icon">&#129302;</span>
                 <span>IA</span>
                 <span class="badge badge-primary" style="font-size:9px; padding:1px 6px;">Novo</span>
@@ -107,7 +106,7 @@
         <div style="margin-bottom: var(--space-4);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--space-2);">
                 <span style="font-size:11px; color:rgba(255,255,255,0.5); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Plano <?= $planName ?></span>
-                <a href="/client/billing" style="font-size:11px; color:var(--primary-light); text-decoration:none;">Upgrade</a>
+                <a href="/dashboard/billing" style="font-size:11px; color:var(--primary-light); text-decoration:none;">Upgrade</a>
             </div>
 
             <!-- Forms usage -->

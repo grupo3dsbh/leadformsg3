@@ -312,7 +312,7 @@ class ClientsController extends Controller
                 'tenant' => array_merge($tenant, $_POST),
                 'plans'  => $this->db()->query("SELECT id, name FROM plans WHERE is_active = 1 ORDER BY sort_order ASC")->fetchAll(\PDO::FETCH_ASSOC),
                 'errors' => ['slug' => 'This slug is already in use by another client.'],
-            ]);
+            ], 'layouts.admin');
         }
 
         $this->tenantModel->update((int) $id, [
@@ -423,13 +423,32 @@ class ClientsController extends Controller
             'target_user_id' => $owner['id'],
         ]);
 
-        return $this->redirect('/client/dashboard');
+        return $this->redirect('/dashboard');
+    }
+
+    /**
+     * Stop impersonating a client and return to super admin session.
+     */
+    public function stopImpersonate(): string
+    {
+        if (!isset($_SESSION['impersonating_from'])) {
+            return $this->redirect('/admin');
+        }
+
+        $original = $_SESSION['impersonating_from'];
+        $returnUrl = $original['return_url'] ?? '/admin/clients';
+
+        // Restore the original admin session
+        $_SESSION['user_id'] = $original['user_id'];
+        unset($_SESSION['impersonating_from'], $_SESSION['tenant_id']);
+
+        return $this->redirect($returnUrl, ['success' => 'Voce voltou a sua conta de administrador.']);
     }
 
     /**
      * Delete a tenant and all associated data.
      */
-    public function delete(string $id): string
+    public function destroy(string $id): string
     {
         $tenant = $this->tenantModel->find((int) $id);
 

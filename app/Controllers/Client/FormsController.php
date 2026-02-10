@@ -93,7 +93,7 @@ class FormsController extends Controller
             'status'     => $status,
             'sortBy'     => $sortBy,
             'sortDir'    => $sortDir,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -105,7 +105,7 @@ class FormsController extends Controller
 
         // Check plan limits
         if (!$this->tenantModel->canCreateForm($tenantData)) {
-            return $this->redirect('/client/forms', [
+            return $this->redirect('/dashboard/forms', [
                 'error' => 'You have reached the maximum number of forms allowed by your plan. Please upgrade.',
             ]);
         }
@@ -120,7 +120,7 @@ class FormsController extends Controller
                 'theme'        => '{}',
                 'is_published' => 0,
             ],
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -131,7 +131,7 @@ class FormsController extends Controller
         $tenantData = tenant();
 
         if (!$this->tenantModel->canCreateForm($tenantData)) {
-            return $this->redirect('/client/forms', [
+            return $this->redirect('/dashboard/forms', [
                 'error' => 'Form limit reached for your current plan.',
             ]);
         }
@@ -145,7 +145,7 @@ class FormsController extends Controller
             return $this->view('client/forms/create', [
                 'form'   => $_POST,
                 'errors' => $errors,
-            ]);
+            ], 'layouts.client');
         }
 
         // Generate slug
@@ -157,7 +157,7 @@ class FormsController extends Controller
             return $this->view('client/forms/create', [
                 'form'   => $_POST,
                 'errors' => ['fields' => 'Invalid form field configuration.'],
-            ]);
+            ], 'layouts.client');
         }
 
         $db = $this->db();
@@ -179,9 +179,38 @@ class FormsController extends Controller
 
         $formId = $db->lastInsertId();
 
-        return $this->redirect("/client/forms/{$formId}/edit", [
+        return $this->redirect("/dashboard/forms/{$formId}/edit", [
             'success' => 'Form created successfully.',
         ]);
+    }
+
+    /**
+     * Show form details (read-only view).
+     */
+    public function show(string $id): string
+    {
+        $form = $this->findTenantForm((int) $id);
+
+        if (!$form) {
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
+        }
+
+        $db = $this->db();
+
+        $fields = json_decode($form['fields'] ?? '[]', true) ?: [];
+        $settings = json_decode($form['settings'] ?? '{}', true) ?: [];
+
+        // Entry count
+        $stmt = $db->prepare("SELECT COUNT(*) FROM entries WHERE form_id = :fid");
+        $stmt->execute(['fid' => (int) $id]);
+        $entryCount = (int) $stmt->fetchColumn();
+
+        return $this->view('client/forms/show', [
+            'form'       => $form,
+            'fields'     => $fields,
+            'settings'   => $settings,
+            'entryCount' => $entryCount,
+        ], 'layouts.client');
     }
 
     /**
@@ -192,7 +221,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $fields = json_decode($form['fields'] ?? '[]', true) ?: [];
@@ -200,7 +229,7 @@ class FormsController extends Controller
         return $this->view('client/forms/edit', [
             'form'   => $form,
             'fields' => $fields,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -211,7 +240,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $errors = $this->validate($_POST, [
@@ -224,7 +253,7 @@ class FormsController extends Controller
                 'form'   => array_merge($form, $_POST),
                 'fields' => json_decode($_POST['fields'] ?? '[]', true) ?: [],
                 'errors' => $errors,
-            ]);
+            ], 'layouts.client');
         }
 
         $fields = json_decode($_POST['fields'], true);
@@ -233,7 +262,7 @@ class FormsController extends Controller
                 'form'   => array_merge($form, $_POST),
                 'fields' => [],
                 'errors' => ['fields' => 'Invalid form field configuration.'],
-            ]);
+            ], 'layouts.client');
         }
 
         $db = $this->db();
@@ -254,7 +283,7 @@ class FormsController extends Controller
             'tid'    => (int) tenant()['id'],
         ]);
 
-        return $this->redirect("/client/forms/{$id}/edit", [
+        return $this->redirect("/dashboard/forms/{$id}/edit", [
             'success' => 'Form saved successfully.',
         ]);
     }
@@ -267,13 +296,13 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $tenantData = tenant();
 
         if (!$this->tenantModel->canCreateForm($tenantData)) {
-            return $this->redirect('/client/forms', [
+            return $this->redirect('/dashboard/forms', [
                 'error' => 'Form limit reached. Cannot duplicate.',
             ]);
         }
@@ -300,9 +329,70 @@ class FormsController extends Controller
 
         $newFormId = $db->lastInsertId();
 
-        return $this->redirect("/client/forms/{$newFormId}/edit", [
+        return $this->redirect("/dashboard/forms/{$newFormId}/edit", [
             'success' => 'Form duplicated successfully.',
         ]);
+    }
+
+    /**
+     * Delete a form (route alias for destroy).
+     */
+    public function destroy(string $id): string
+    {
+        return $this->delete($id);
+    }
+
+    /**
+     * AJAX save form fields from the builder.
+     */
+    public function ajaxSave(): string
+    {
+        $formId = $_POST['form_id'] ?? null;
+
+        if (!$formId) {
+            return $this->json(['success' => false, 'error' => 'Missing form_id.'], 400);
+        }
+
+        $form = $this->findTenantForm((int) $formId);
+
+        if (!$form) {
+            return $this->json(['success' => false, 'error' => 'Form not found.'], 404);
+        }
+
+        $fields = $_POST['fields'] ?? null;
+        $title = $_POST['title'] ?? null;
+
+        $updates = ['updated_at = NOW()'];
+        $params = ['id' => (int) $formId, 'tid' => (int) tenant()['id']];
+
+        if ($fields !== null) {
+            $decoded = json_decode($fields, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return $this->json(['success' => false, 'error' => 'Invalid fields JSON.'], 400);
+            }
+            $updates[] = 'fields = :fields';
+            $params['fields'] = json_encode($decoded);
+        }
+
+        if ($title !== null) {
+            $updates[] = 'title = :title';
+            $params['title'] = trim($title);
+        }
+
+        if (!empty($_POST['settings'])) {
+            $updates[] = 'settings = :settings';
+            $params['settings'] = $_POST['settings'];
+        }
+
+        if (!empty($_POST['theme'])) {
+            $updates[] = 'theme = :theme';
+            $params['theme'] = $_POST['theme'];
+        }
+
+        $sql = "UPDATE forms SET " . implode(', ', $updates) . " WHERE id = :id AND tenant_id = :tid";
+        $this->db()->prepare($sql)->execute($params);
+
+        return $this->json(['success' => true, 'message' => 'Form saved.']);
     }
 
     /**
@@ -313,7 +403,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $db = $this->db();
@@ -327,7 +417,7 @@ class FormsController extends Controller
             'tid' => (int) tenant()['id'],
         ]);
 
-        return $this->redirect('/client/forms', [
+        return $this->redirect('/dashboard/forms', [
             'success' => "Form \"{$form['title']}\" has been deleted.",
         ]);
     }
@@ -340,7 +430,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $this->db()->prepare(
@@ -350,7 +440,7 @@ class FormsController extends Controller
             'tid' => (int) tenant()['id'],
         ]);
 
-        return $this->redirect("/client/forms/{$id}/edit", [
+        return $this->redirect("/dashboard/forms/{$id}/edit", [
             'success' => 'Form has been published.',
         ]);
     }
@@ -363,7 +453,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $this->db()->prepare(
@@ -373,7 +463,7 @@ class FormsController extends Controller
             'tid' => (int) tenant()['id'],
         ]);
 
-        return $this->redirect("/client/forms/{$id}/edit", [
+        return $this->redirect("/dashboard/forms/{$id}/edit", [
             'success' => 'Form has been unpublished.',
         ]);
     }
@@ -386,7 +476,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $fields   = json_decode($form['fields'] ?? '[]', true) ?: [];
@@ -398,7 +488,7 @@ class FormsController extends Controller
             'fields'   => $fields,
             'settings' => $settings,
             'theme'    => $theme,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -409,7 +499,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $settings = json_decode($form['settings'] ?? '{}', true) ?: [];
@@ -417,7 +507,7 @@ class FormsController extends Controller
         return $this->view('client/forms/settings', [
             'form'     => $form,
             'settings' => $settings,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -428,7 +518,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $settings = [
@@ -459,7 +549,7 @@ class FormsController extends Controller
             'tid'      => (int) tenant()['id'],
         ]);
 
-        return $this->redirect("/client/forms/{$id}/settings", [
+        return $this->redirect("/dashboard/forms/{$id}/settings", [
             'success' => 'Form settings saved.',
         ]);
     }
@@ -472,7 +562,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $theme = json_decode($form['theme'] ?? '{}', true) ?: [];
@@ -480,7 +570,7 @@ class FormsController extends Controller
         return $this->view('client/forms/theme', [
             'form'  => $form,
             'theme' => $theme,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -491,7 +581,7 @@ class FormsController extends Controller
         $form = $this->findTenantForm((int) $id);
 
         if (!$form) {
-            return $this->redirect('/client/forms', ['error' => 'Form not found.']);
+            return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
         $theme = [
@@ -523,7 +613,7 @@ class FormsController extends Controller
             'tid'   => (int) tenant()['id'],
         ]);
 
-        return $this->redirect("/client/forms/{$id}/theme", [
+        return $this->redirect("/dashboard/forms/{$id}/theme", [
             'success' => 'Form theme saved.',
         ]);
     }
