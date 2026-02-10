@@ -10,6 +10,7 @@
 # Storage
 /storage/logs/*
 /storage/cache/*
+/storage/.installed
 !storage/logs/.gitkeep
 !storage/cache/.gitkeep
 
