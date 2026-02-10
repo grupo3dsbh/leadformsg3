@@ -60,6 +60,7 @@ $router->group('/admin', ['middleware' => 'superadmin'], function ($router) {
     $router->post('/plans', 'Admin\\PlansController@store');
     $router->get('/plans/{id}/edit', 'Admin\\PlansController@edit');
     $router->put('/plans/{id}', 'Admin\\PlansController@update');
+    $router->post('/plans/{id}/toggle', 'Admin\\PlansController@toggle');
     $router->delete('/plans/{id}', 'Admin\\PlansController@destroy');
 
     // All forms across tenants
@@ -81,6 +82,8 @@ $router->group('/admin', ['middleware' => 'superadmin'], function ($router) {
     $router->post('/settings/theme', 'Admin\\SettingsController@updateTheme');
     $router->get('/settings/ai', 'Admin\\SettingsController@ai');
     $router->post('/settings/ai', 'Admin\\SettingsController@updateAi');
+    $router->get('/settings/api', 'Admin\\SettingsController@api');
+    $router->post('/settings/api', 'Admin\\SettingsController@updateApi');
     $router->get('/settings/site', 'Admin\\SettingsController@site');
     $router->post('/settings/site', 'Admin\\SettingsController@updateSite');
     $router->get('/settings/dev', 'Admin\\SettingsController@dev');

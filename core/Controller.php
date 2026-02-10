@@ -169,12 +169,20 @@ abstract class Controller
     // ------------------------------------------------------------------
 
     /**
-     * Redirect to a given URL.
+     * Redirect to a given URL, optionally with flash session data.
      */
-    protected function redirect(string $url, int $statusCode = 302): Response
+    protected function redirect(string $url, array $flash = []): Response
     {
+        // Store flash data in session for next request
+        if (!empty($flash)) {
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                session_start();
+            }
+            $_SESSION['_flash'] = array_merge($_SESSION['_flash'] ?? [], $flash);
+        }
+
         return (new Response())
-            ->setStatusCode($statusCode)
+            ->setStatusCode(302)
             ->redirect($url);
     }
 

@@ -4,9 +4,12 @@
  *
  * Variables from controller:
  * @var array $plan
+ * @var array $allFeatures
  * @var array $errors
  */
 $errors = $errors ?? [];
+$allFeatures = $allFeatures ?? [];
+$planFeatures = json_decode($plan['features'] ?? '[]', true) ?: [];
 ?>
 
 <div class="page-header">
@@ -35,7 +38,7 @@ $errors = $errors ?? [];
                 </div>
             <?php endif; ?>
 
-            <div class="grid grid-2 gap-6">
+            <div class="grid grid-3 gap-6">
                 <div class="form-group">
                     <label class="form-label">Nome *</label>
                     <input type="text" name="name" class="form-input" value="<?= e($plan['name'] ?? '') ?>" required>
@@ -45,12 +48,24 @@ $errors = $errors ?? [];
                     <input type="text" name="slug" class="form-input" value="<?= e($plan['slug'] ?? '') ?>" required placeholder="plano-basico">
                 </div>
                 <div class="form-group">
+                    <label class="form-label">Moeda</label>
+                    <select name="currency" class="form-select">
+                        <option value="BRL" <?= ($plan['currency'] ?? 'BRL') === 'BRL' ? 'selected' : '' ?>>BRL (Real)</option>
+                        <option value="USD" <?= ($plan['currency'] ?? '') === 'USD' ? 'selected' : '' ?>>USD (Dolar)</option>
+                        <option value="EUR" <?= ($plan['currency'] ?? '') === 'EUR' ? 'selected' : '' ?>>EUR (Euro)</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label class="form-label">Preco Mensal *</label>
-                    <input type="number" name="price_monthly" class="form-input" value="<?= e($plan['price_monthly'] ?? '') ?>" step="0.01" min="0" required>
+                    <input type="number" name="price_monthly" class="form-input" value="<?= e($plan['price_monthly'] ?? '0') ?>" step="0.01" min="0" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Preco Anual</label>
-                    <input type="number" name="price_yearly" class="form-input" value="<?= e($plan['price_yearly'] ?? '') ?>" step="0.01" min="0">
+                    <input type="number" name="price_yearly" class="form-input" value="<?= e($plan['price_yearly'] ?? '0') ?>" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ordem de Exibicao</label>
+                    <input type="number" name="sort_order" class="form-input" value="<?= (int) ($plan['sort_order'] ?? 0) ?>" min="0">
                 </div>
             </div>
 
@@ -64,6 +79,7 @@ $errors = $errors ?? [];
                 <div class="form-group">
                     <label class="form-label">Max Formularios</label>
                     <input type="number" name="max_forms" class="form-input" value="<?= (int) ($plan['max_forms'] ?? 5) ?>" min="0">
+                    <p class="form-hint">0 = ilimitado</p>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Max Entradas/Mes</label>
@@ -82,6 +98,20 @@ $errors = $errors ?? [];
                     <input type="number" name="max_file_size" class="form-input" value="<?= (int) ($plan['max_file_size'] ?? 5) ?>" min="1">
                 </div>
             </div>
+
+            <?php if (!empty($allFeatures)): ?>
+            <h4 class="font-semibold mt-6 mb-4">Funcionalidades Incluidas</h4>
+            <div class="grid grid-3 gap-4">
+                <?php foreach ($allFeatures as $feat): ?>
+                    <label class="flex items-center gap-2" style="cursor:pointer;">
+                        <input type="checkbox" name="feature_slugs[]" value="<?= e($feat['slug']) ?>"
+                            <?= in_array($feat['slug'], $planFeatures) ? 'checked' : '' ?>>
+                        <span class="text-sm"><?= e($feat['name']) ?></span>
+                        <span class="text-xs text-gray-400">(<?= e($feat['category'] ?? '') ?>)</span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
 
             <div class="flex items-center gap-6 mt-6">
                 <label class="form-toggle">

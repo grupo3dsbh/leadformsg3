@@ -47,6 +47,10 @@ class PlansController extends Controller
      */
     public function create(): string
     {
+        $allFeatures = $this->db()->query(
+            "SELECT id, name, slug, category FROM features WHERE is_active = 1 ORDER BY category, name"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+
         return $this->view('admin/plans/create', [
             'plan' => [
                 'name'                 => '',
@@ -54,7 +58,7 @@ class PlansController extends Controller
                 'description'          => '',
                 'price_monthly'        => '',
                 'price_yearly'         => '',
-                'currency'             => 'USD',
+                'currency'             => 'BRL',
                 'max_forms'            => 5,
                 'max_entries_per_month' => 100,
                 'max_file_storage'     => 100,
@@ -66,6 +70,7 @@ class PlansController extends Controller
                 'is_active'            => 1,
                 'sort_order'           => 0,
             ],
+            'allFeatures' => $allFeatures,
         ], 'layouts.admin');
     }
 
@@ -82,10 +87,15 @@ class PlansController extends Controller
             'currency'      => 'required|string|max:3',
         ]);
 
+        $allFeatures = $this->db()->query(
+            "SELECT id, name, slug, category FROM features WHERE is_active = 1 ORDER BY category, name"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+
         if (!empty($errors)) {
             return $this->view('admin/plans/create', [
-                'plan'   => $_POST,
-                'errors' => $errors,
+                'plan'        => $_POST,
+                'errors'      => $errors,
+                'allFeatures' => $allFeatures,
             ], 'layouts.admin');
         }
 
@@ -93,12 +103,15 @@ class PlansController extends Controller
         $existing = $this->planModel->findBySlug(trim($_POST['slug']));
         if ($existing) {
             return $this->view('admin/plans/create', [
-                'plan'   => $_POST,
-                'errors' => ['slug' => 'This slug is already in use.'],
+                'plan'        => $_POST,
+                'errors'      => ['slug' => 'This slug is already in use.'],
+                'allFeatures' => $allFeatures,
             ], 'layouts.admin');
         }
 
-        $features = $this->parseJsonField($_POST['features'] ?? '[]');
+        // Handle feature_slugs[] from checkboxes or fallback to features JSON
+        $featureSlugs = $_POST['feature_slugs'] ?? [];
+        $features = !empty($featureSlugs) ? $featureSlugs : $this->parseJsonField($_POST['features'] ?? '[]');
         $integrations = $this->parseJsonField($_POST['integrations'] ?? '[]');
 
         $this->planModel->create([
@@ -136,18 +149,18 @@ class PlansController extends Controller
             return $this->redirect('/admin/plans', ['error' => 'Plan not found.']);
         }
 
-        $tenantCount = (int) $this->db()->prepare(
-            "SELECT COUNT(*) FROM tenants WHERE plan_id = :pid"
-        )->execute(['pid' => (int) $id]) ? $this->db()->query("SELECT FOUND_ROWS()")->fetchColumn() : 0;
-
-        // Re-query properly
         $stmt = $this->db()->prepare("SELECT COUNT(*) FROM tenants WHERE plan_id = :pid");
         $stmt->execute(['pid' => (int) $id]);
         $tenantCount = (int) $stmt->fetchColumn();
 
+        $allFeatures = $this->db()->query(
+            "SELECT id, name, slug, category FROM features WHERE is_active = 1 ORDER BY category, name"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+
         return $this->view('admin/plans/edit', [
             'plan'        => $plan,
             'tenantCount' => $tenantCount,
+            'allFeatures' => $allFeatures,
         ], 'layouts.admin');
     }
 
@@ -170,10 +183,15 @@ class PlansController extends Controller
             'currency'      => 'required|string|max:3',
         ]);
 
+        $allFeatures = $this->db()->query(
+            "SELECT id, name, slug, category FROM features WHERE is_active = 1 ORDER BY category, name"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+
         if (!empty($errors)) {
             return $this->view('admin/plans/edit', [
-                'plan'   => array_merge($plan, $_POST),
-                'errors' => $errors,
+                'plan'        => array_merge($plan, $_POST),
+                'errors'      => $errors,
+                'allFeatures' => $allFeatures,
             ], 'layouts.admin');
         }
 
@@ -181,12 +199,15 @@ class PlansController extends Controller
         $existing = $this->planModel->findBySlug(trim($_POST['slug']));
         if ($existing && (int) $existing['id'] !== (int) $id) {
             return $this->view('admin/plans/edit', [
-                'plan'   => array_merge($plan, $_POST),
-                'errors' => ['slug' => 'This slug is already in use by another plan.'],
+                'plan'        => array_merge($plan, $_POST),
+                'errors'      => ['slug' => 'This slug is already in use by another plan.'],
+                'allFeatures' => $allFeatures,
             ], 'layouts.admin');
         }
 
-        $features     = $this->parseJsonField($_POST['features'] ?? $plan['features']);
+        // Handle feature_slugs[] from checkboxes or fallback to features JSON
+        $featureSlugs = $_POST['feature_slugs'] ?? [];
+        $features     = !empty($featureSlugs) ? $featureSlugs : $this->parseJsonField($_POST['features'] ?? $plan['features']);
         $integrations = $this->parseJsonField($_POST['integrations'] ?? $plan['integrations']);
 
         $this->planModel->update((int) $id, [

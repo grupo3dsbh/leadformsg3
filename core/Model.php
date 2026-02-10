@@ -100,9 +100,9 @@ abstract class Model
     // ------------------------------------------------------------------
 
     /**
-     * Find a record by its primary key.
+     * Find a record by its primary key. Returns the row as an associative array.
      */
-    public static function find(int|string $id): ?static
+    public static function find(int|string $id): ?array
     {
         $instance = new static();
         $db       = Database::getInstance();
@@ -120,13 +120,13 @@ abstract class Model
             return null;
         }
 
-        return $instance->hydrate($row);
+        return $row;
     }
 
     /**
      * Find a record or throw a NotFoundException.
      */
-    public static function findOrFail(int|string $id): static
+    public static function findOrFail(int|string $id): array
     {
         $result = static::find($id);
 

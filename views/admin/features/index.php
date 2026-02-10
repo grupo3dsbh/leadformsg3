@@ -17,17 +17,22 @@
 </div>
 
 <!-- Stats -->
+<?php
+    $totalFeatures = count($features ?? []);
+    $activeFeatures = count(array_filter($features ?? [], fn($f) => !empty($f['is_active'])));
+    $totalIntegrations = array_sum(array_column($features ?? [], 'active_tenant_count'));
+?>
 <div class="grid grid-3 gap-6 mb-8">
     <div class="stat-card">
-        <div class="stat-value"><?= (int) ($stats['total_features'] ?? 0) ?></div>
+        <div class="stat-value"><?= $totalFeatures ?></div>
         <div class="stat-label">Total de Funcionalidades</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value"><?= (int) ($stats['active_features'] ?? 0) ?></div>
+        <div class="stat-value"><?= $activeFeatures ?></div>
         <div class="stat-label">Funcionalidades Ativas</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value"><?= (int) ($stats['total_integrations'] ?? 0) ?></div>
+        <div class="stat-value"><?= $totalIntegrations ?></div>
         <div class="stat-label">Integracoes Ativas</div>
     </div>
 </div>
