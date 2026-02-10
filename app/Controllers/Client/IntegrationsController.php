@@ -58,7 +58,7 @@ class IntegrationsController extends Controller
             'configured'           => $configuredByType,
             'allowedIntegrations'  => $allowedIntegrations,
             'plan'                 => $plan,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -91,7 +91,7 @@ class IntegrationsController extends Controller
             'integration' => $integration,
             'config'      => $config,
             'feature'     => $feature,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -121,7 +121,7 @@ class IntegrationsController extends Controller
 
         if ($existing) {
             $db->prepare(
-                "UPDATE integrations SET config = :config, updated_at = NOW() WHERE id = :id"
+                "UPDATE integrations SET settings = :config, updated_at = NOW() WHERE id = :id"
             )->execute([
                 'config' => json_encode($config),
                 'id'     => (int) $existing['id'],
@@ -137,7 +137,7 @@ class IntegrationsController extends Controller
             ]);
         }
 
-        return $this->redirect('/client/integrations', [
+        return $this->redirect('/dashboard/integrations', [
             'success' => ucfirst($type) . ' integration configured successfully.',
         ]);
     }
@@ -150,7 +150,7 @@ class IntegrationsController extends Controller
         $integration = $this->findTenantIntegration((int) $id);
 
         if (!$integration) {
-            return $this->redirect('/client/integrations', ['error' => 'Integration not found.']);
+            return $this->redirect('/dashboard/integrations', ['error' => 'Integration not found.']);
         }
 
         $newStatus = ($integration['status'] ?? '') === 'active' ? 'inactive' : 'active';
@@ -162,9 +162,9 @@ class IntegrationsController extends Controller
             'id'     => (int) $id,
         ]);
 
-        $label = $newStatus ? 'enabled' : 'disabled';
+        $label = $newStatus === 'active' ? 'enabled' : 'disabled';
 
-        return $this->redirect('/client/integrations', [
+        return $this->redirect('/dashboard/integrations', [
             'success' => ucfirst($integration['type']) . " integration {$label}.",
         ]);
     }
@@ -177,12 +177,12 @@ class IntegrationsController extends Controller
         $integration = $this->findTenantIntegration((int) $id);
 
         if (!$integration) {
-            return $this->redirect('/client/integrations', ['error' => 'Integration not found.']);
+            return $this->redirect('/dashboard/integrations', ['error' => 'Integration not found.']);
         }
 
         $this->db()->prepare("DELETE FROM integrations WHERE id = :id")->execute(['id' => (int) $id]);
 
-        return $this->redirect('/client/integrations', [
+        return $this->redirect('/dashboard/integrations', [
             'success' => ucfirst($integration['type']) . ' integration removed.',
         ]);
     }
@@ -215,9 +215,10 @@ class IntegrationsController extends Controller
         $forms = $forms->fetchAll(\PDO::FETCH_ASSOC);
 
         return $this->view('client/integrations/webhooks', [
+
             'webhooks' => $webhooks,
             'forms'    => $forms,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -242,7 +243,7 @@ class IntegrationsController extends Controller
             ],
             'forms'   => $forms,
             'isEdit'  => false,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -261,7 +262,7 @@ class IntegrationsController extends Controller
                 'forms'   => $this->getTenantForms(),
                 'errors'  => $errors,
                 'isEdit'  => false,
-            ]);
+            ], 'layouts.client');
         }
 
         $events = is_array($_POST['events'] ?? null) ? $_POST['events'] : [$_POST['events']];
@@ -279,7 +280,7 @@ class IntegrationsController extends Controller
             'active' => !empty($_POST['is_active']) ? 1 : 0,
         ]);
 
-        return $this->redirect('/client/integrations/webhooks', [
+        return $this->redirect('/dashboard/webhooks', [
             'success' => 'Webhook created successfully.',
         ]);
     }
@@ -292,7 +293,7 @@ class IntegrationsController extends Controller
         $webhook = $this->findTenantWebhook((int) $id);
 
         if (!$webhook) {
-            return $this->redirect('/client/integrations/webhooks', ['error' => 'Webhook not found.']);
+            return $this->redirect('/dashboard/webhooks', ['error' => 'Webhook not found.']);
         }
 
         $webhook['events'] = json_decode($webhook['events'] ?? '[]', true) ?: [];
@@ -301,7 +302,7 @@ class IntegrationsController extends Controller
             'webhook' => $webhook,
             'forms'   => $this->getTenantForms(),
             'isEdit'  => true,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -312,7 +313,7 @@ class IntegrationsController extends Controller
         $webhook = $this->findTenantWebhook((int) $id);
 
         if (!$webhook) {
-            return $this->redirect('/client/integrations/webhooks', ['error' => 'Webhook not found.']);
+            return $this->redirect('/dashboard/webhooks', ['error' => 'Webhook not found.']);
         }
 
         $errors = $this->validate($_POST, [
@@ -326,7 +327,7 @@ class IntegrationsController extends Controller
                 'forms'   => $this->getTenantForms(),
                 'errors'  => $errors,
                 'isEdit'  => true,
-            ]);
+            ], 'layouts.client');
         }
 
         $events = is_array($_POST['events'] ?? null) ? $_POST['events'] : [$_POST['events']];
@@ -350,7 +351,7 @@ class IntegrationsController extends Controller
             'tid'    => (int) tenant()['id'],
         ]);
 
-        return $this->redirect('/client/integrations/webhooks', [
+        return $this->redirect('/dashboard/webhooks', [
             'success' => 'Webhook updated successfully.',
         ]);
     }
@@ -363,7 +364,7 @@ class IntegrationsController extends Controller
         $webhook = $this->findTenantWebhook((int) $id);
 
         if (!$webhook) {
-            return $this->redirect('/client/integrations/webhooks', ['error' => 'Webhook not found.']);
+            return $this->redirect('/dashboard/webhooks', ['error' => 'Webhook not found.']);
         }
 
         $this->db()->prepare(
@@ -373,7 +374,7 @@ class IntegrationsController extends Controller
             'tid' => (int) tenant()['id'],
         ]);
 
-        return $this->redirect('/client/integrations/webhooks', [
+        return $this->redirect('/dashboard/webhooks', [
             'success' => 'Webhook deleted.',
         ]);
     }

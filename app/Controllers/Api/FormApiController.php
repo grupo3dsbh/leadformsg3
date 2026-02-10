@@ -46,10 +46,9 @@ class FormApiController extends Controller
             $params['search'] = "%{$search}%";
         }
 
-        if ($status === 'published') {
-            $where[] = 'f.is_published = 1';
-        } elseif ($status === 'draft') {
-            $where[] = 'f.is_published = 0';
+        if ($status !== '') {
+            $where[]          = 'f.status = :status';
+            $params['status'] = $status;
         }
 
         $whereClause = 'WHERE ' . implode(' AND ', $where);
@@ -60,9 +59,8 @@ class FormApiController extends Controller
         $total = (int) $countStmt->fetchColumn();
 
         // Fetch
-        $sql = "SELECT f.id, f.title, f.slug, f.description, f.is_published,
-                       f.views, f.created_at, f.updated_at,
-                       (SELECT COUNT(*) FROM entries WHERE form_id = f.id) AS entry_count
+        $sql = "SELECT f.id, f.title, f.slug, f.description, f.status,
+                       f.views_count, f.submissions_count, f.created_at, f.updated_at
                   FROM forms f
                   {$whereClause}
                   ORDER BY f.created_at DESC
@@ -101,10 +99,11 @@ class FormApiController extends Controller
             return $this->json(['error' => 'Form not found.'], 404);
         }
 
-        // Decode JSON fields for the response
-        $form['fields']   = json_decode($form['fields'] ?? '[]', true) ?: [];
+        // Load fields from form_fields table
+        $fieldsStmt = $this->db()->prepare("SELECT * FROM form_fields WHERE form_id = :fid ORDER BY sort_order ASC");
+        $fieldsStmt->execute(['fid' => (int) $id]);
+        $form['fields']   = $fieldsStmt->fetchAll(\PDO::FETCH_ASSOC);
         $form['settings'] = json_decode($form['settings'] ?? '{}', true) ?: [];
-        $form['theme']    = json_decode($form['theme'] ?? '{}', true) ?: [];
 
         // Add entry count
         $stmt = $this->db()->prepare("SELECT COUNT(*) FROM entries WHERE form_id = :fid");
@@ -143,30 +142,53 @@ class FormApiController extends Controller
         // Generate unique slug
         $slug     = $this->generateSlug($input['title'], $tenantId);
         $settings = isset($input['settings']) && is_array($input['settings']) ? $input['settings'] : [];
-        $theme    = isset($input['theme']) && is_array($input['theme']) ? $input['theme'] : [];
+        if (isset($input['theme']) && is_array($input['theme'])) {
+            $settings['theme'] = $input['theme'];
+        }
+        $status = !empty($input['is_published']) ? 'published' : 'draft';
 
         $stmt = $db->prepare(
-            "INSERT INTO forms (tenant_id, title, slug, description, fields, settings, theme, is_published, views, created_at, updated_at)
-             VALUES (:tid, :title, :slug, :desc, :fields, :settings, :theme, :published, 0, NOW(), NOW())"
+            "INSERT INTO forms (tenant_id, user_id, title, slug, description, settings, status, views_count, submissions_count, created_at, updated_at)
+             VALUES (:tid, :uid, :title, :slug, :desc, :settings, :status, 0, 0, NOW(), NOW())"
         );
         $stmt->execute([
-            'tid'       => $tenantId,
-            'title'     => trim($input['title']),
-            'slug'      => $slug,
-            'desc'      => trim($input['description'] ?? ''),
-            'fields'    => json_encode($input['fields']),
-            'settings'  => json_encode($settings),
-            'theme'     => json_encode($theme),
-            'published' => !empty($input['is_published']) ? 1 : 0,
+            'tid'      => $tenantId,
+            'uid'      => auth()['id'] ?? 0,
+            'title'    => trim($input['title']),
+            'slug'     => $slug,
+            'desc'     => trim($input['description'] ?? ''),
+            'settings' => json_encode($settings),
+            'status'   => $status,
         ]);
 
         $formId = (int) $db->lastInsertId();
 
+        // Save fields to form_fields table
+        if (!empty($input['fields'])) {
+            $sortOrder = 0;
+            $fieldStmt = $db->prepare(
+                "INSERT INTO form_fields (form_id, type, label, placeholder, required, settings, sort_order, created_at, updated_at)
+                 VALUES (:fid, :type, :label, :placeholder, :required, :settings, :sort, NOW(), NOW())"
+            );
+            foreach ($input['fields'] as $field) {
+                $fieldStmt->execute([
+                    'fid'         => $formId,
+                    'type'        => $field['type'] ?? 'text',
+                    'label'       => $field['label'] ?? '',
+                    'placeholder' => $field['placeholder'] ?? '',
+                    'required'    => !empty($field['required']) ? 1 : 0,
+                    'settings'    => json_encode($field),
+                    'sort'        => $sortOrder++,
+                ]);
+            }
+        }
+
         // Return the created form
         $form = $this->findTenantForm($formId);
-        $form['fields']   = json_decode($form['fields'] ?? '[]', true) ?: [];
+        $fieldsStmt = $db->prepare("SELECT * FROM form_fields WHERE form_id = :fid ORDER BY sort_order ASC");
+        $fieldsStmt->execute(['fid' => $formId]);
+        $form['fields']   = $fieldsStmt->fetchAll(\PDO::FETCH_ASSOC);
         $form['settings'] = json_decode($form['settings'] ?? '{}', true) ?: [];
-        $form['theme']    = json_decode($form['theme'] ?? '{}', true) ?: [];
 
         return $this->json(['data' => $form], 201);
     }
@@ -212,8 +234,25 @@ class FormApiController extends Controller
                     'errors' => ['fields' => 'Fields must be an array.'],
                 ], 422);
             }
-            $updateFields[]          = 'fields = :fields';
-            $updateParams['fields']  = json_encode($input['fields']);
+            // Save fields to form_fields table
+            $db = $this->db();
+            $db->prepare("DELETE FROM form_fields WHERE form_id = :fid")->execute(['fid' => (int) $id]);
+            $sortOrder = 0;
+            $fieldStmt = $db->prepare(
+                "INSERT INTO form_fields (form_id, type, label, placeholder, required, settings, sort_order, created_at, updated_at)
+                 VALUES (:fid, :type, :label, :placeholder, :required, :settings, :sort, NOW(), NOW())"
+            );
+            foreach ($input['fields'] as $field) {
+                $fieldStmt->execute([
+                    'fid'         => (int) $id,
+                    'type'        => $field['type'] ?? 'text',
+                    'label'       => $field['label'] ?? '',
+                    'placeholder' => $field['placeholder'] ?? '',
+                    'required'    => !empty($field['required']) ? 1 : 0,
+                    'settings'    => json_encode($field),
+                    'sort'        => $sortOrder++,
+                ]);
+            }
         }
 
         if (isset($input['settings'])) {
@@ -221,14 +260,9 @@ class FormApiController extends Controller
             $updateParams['settings']  = json_encode(is_array($input['settings']) ? $input['settings'] : []);
         }
 
-        if (isset($input['theme'])) {
-            $updateFields[]         = 'theme = :theme';
-            $updateParams['theme']  = json_encode(is_array($input['theme']) ? $input['theme'] : []);
-        }
-
         if (isset($input['is_published'])) {
-            $updateFields[]              = 'is_published = :published';
-            $updateParams['published']   = $input['is_published'] ? 1 : 0;
+            $updateFields[]            = 'status = :status';
+            $updateParams['status']    = $input['is_published'] ? 'published' : 'draft';
         }
 
         if (empty($updateFields)) {
@@ -242,9 +276,10 @@ class FormApiController extends Controller
 
         // Return updated form
         $updatedForm = $this->findTenantForm((int) $id);
-        $updatedForm['fields']   = json_decode($updatedForm['fields'] ?? '[]', true) ?: [];
+        $fieldsStmt = $this->db()->prepare("SELECT * FROM form_fields WHERE form_id = :fid ORDER BY sort_order ASC");
+        $fieldsStmt->execute(['fid' => (int) $id]);
+        $updatedForm['fields']   = $fieldsStmt->fetchAll(\PDO::FETCH_ASSOC);
         $updatedForm['settings'] = json_decode($updatedForm['settings'] ?? '{}', true) ?: [];
-        $updatedForm['theme']    = json_decode($updatedForm['theme'] ?? '{}', true) ?: [];
 
         return $this->json(['data' => $updatedForm]);
     }
@@ -318,7 +353,7 @@ class FormApiController extends Controller
         $total = (int) $countStmt->fetchColumn();
 
         // Fetch
-        $sql = "SELECT fe.id, fe.form_id, fe.data, fe.ip_address, fe.user_agent, fe.referrer, fe.created_at
+        $sql = "SELECT fe.id, fe.form_id, fe.status, fe.ip_address, fe.user_agent, fe.referrer, fe.created_at
                   FROM entries fe
                   {$whereClause}
                   ORDER BY fe.created_at DESC
@@ -333,9 +368,13 @@ class FormApiController extends Controller
         $stmt->execute();
         $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Decode data JSON
+        // Load entry values from entry_values table
         foreach ($entries as &$entry) {
-            $entry['data'] = json_decode($entry['data'] ?? '{}', true) ?: [];
+            $evStmt = $db->prepare(
+                "SELECT ev.field_id, ev.value, ff.label FROM entry_values ev LEFT JOIN form_fields ff ON ff.id = ev.field_id WHERE ev.entry_id = :eid"
+            );
+            $evStmt->execute(['eid' => (int) $entry['id']]);
+            $entry['values'] = $evStmt->fetchAll(\PDO::FETCH_ASSOC);
         }
         unset($entry);
 

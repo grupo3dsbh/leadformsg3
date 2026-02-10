@@ -36,7 +36,7 @@ class SettingsController extends Controller
 
         return $this->view('client/settings/profile', [
             'user' => $user,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -47,18 +47,17 @@ class SettingsController extends Controller
         $user = auth();
 
         $errors = $this->validate($_POST, [
-            'first_name' => 'required|string|max:100',
-            'last_name'  => 'required|string|max:100',
-            'email'      => 'required|email',
-            'timezone'   => 'nullable|string|max:50',
-            'locale'     => 'nullable|string|max:10',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email',
+            'timezone' => 'nullable|string|max:50',
+            'locale'   => 'nullable|string|max:10',
         ]);
 
         if (!empty($errors)) {
             return $this->view('client/settings/profile', [
                 'user'   => array_merge($user, $_POST),
                 'errors' => $errors,
-            ]);
+            ], 'layouts.client');
         }
 
         // Check email uniqueness if changed
@@ -69,13 +68,12 @@ class SettingsController extends Controller
                 return $this->view('client/settings/profile', [
                     'user'   => array_merge($user, $_POST),
                     'errors' => ['email' => 'This email is already in use.'],
-                ]);
+                ], 'layouts.client');
             }
         }
 
         $updateData = [
-            'first_name' => trim($_POST['first_name']),
-            'last_name'  => trim($_POST['last_name']),
+            'name'       => trim($_POST['name']),
             'email'      => $newEmail,
             'timezone'   => trim($_POST['timezone'] ?? $user['timezone'] ?? 'UTC'),
             'locale'     => trim($_POST['locale'] ?? $user['locale'] ?? 'en'),
@@ -97,13 +95,13 @@ class SettingsController extends Controller
                 }
 
                 move_uploaded_file($_FILES['avatar']['tmp_name'], $uploadDir . $filename);
-                $updateData['avatar_url'] = '/uploads/avatars/' . $filename;
+                $updateData['avatar'] = '/uploads/avatars/' . $filename;
             }
         }
 
         $this->userModel->update((int) $user['id'], $updateData);
 
-        return $this->redirect('/client/settings/profile', [
+        return $this->redirect('/dashboard/profile', [
             'success' => 'Profile updated successfully.',
         ]);
     }
@@ -122,7 +120,7 @@ class SettingsController extends Controller
         return $this->view('client/settings/security', [
             'user'           => $user,
             'twoFactorEnabled' => !empty($user['two_factor_enabled']),
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -144,17 +142,17 @@ class SettingsController extends Controller
                 'twoFactorEnabled' => !empty($user['two_factor_enabled']),
                 'errors'           => $errors,
                 'section'          => 'password',
-            ]);
+            ], 'layouts.client');
         }
 
         // Verify current password
-        if (!$this->userModel->verifyPassword($_POST['current_password'], $user['password_hash'])) {
+        if (!$this->userModel->verifyPassword($_POST['current_password'], $user['password'])) {
             return $this->view('client/settings/security', [
                 'user'             => $user,
                 'twoFactorEnabled' => !empty($user['two_factor_enabled']),
                 'errors'           => ['current_password' => 'Current password is incorrect.'],
                 'section'          => 'password',
-            ]);
+            ], 'layouts.client');
         }
 
         // Confirm new password match
@@ -164,15 +162,15 @@ class SettingsController extends Controller
                 'twoFactorEnabled' => !empty($user['two_factor_enabled']),
                 'errors'           => ['confirm_password' => 'Passwords do not match.'],
                 'section'          => 'password',
-            ]);
+            ], 'layouts.client');
         }
 
         $this->userModel->update((int) $user['id'], [
-            'password_hash' => password_hash($_POST['new_password'], PASSWORD_ARGON2ID),
+            'password' => password_hash($_POST['new_password'], PASSWORD_ARGON2ID),
             'updated_at'    => date('Y-m-d H:i:s'),
         ]);
 
-        return $this->redirect('/client/settings/security', [
+        return $this->redirect('/dashboard/security', [
             'success' => 'Password changed successfully.',
         ]);
     }
@@ -185,7 +183,7 @@ class SettingsController extends Controller
         $user = auth();
 
         if (!empty($user['two_factor_enabled'])) {
-            return $this->redirect('/client/settings/security', [
+            return $this->redirect('/dashboard/security', [
                 'info' => 'Two-factor authentication is already enabled.',
             ]);
         }
@@ -204,7 +202,7 @@ class SettingsController extends Controller
             'user'       => $user,
             'secret'     => $secret,
             'otpAuthUrl' => $otpAuthUrl,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -217,7 +215,7 @@ class SettingsController extends Controller
         $code   = trim($_POST['code'] ?? '');
 
         if ($secret === '' || $code === '') {
-            return $this->redirect('/client/settings/security', [
+            return $this->redirect('/dashboard/security', [
                 'error' => 'Invalid 2FA setup session. Please try again.',
             ]);
         }
@@ -229,7 +227,7 @@ class SettingsController extends Controller
                 'secret'     => $secret,
                 'otpAuthUrl' => '',
                 'errors'     => ['code' => 'Invalid verification code. Please try again.'],
-            ]);
+            ], 'layouts.client');
         }
 
         // Store the secret and enable 2FA
@@ -250,7 +248,7 @@ class SettingsController extends Controller
         // Store recovery codes (hashed)
         $hashedCodes = array_map(fn($c) => hash('sha256', $c), $recoveryCodes);
         $this->db()->prepare(
-            "UPDATE users SET two_factor_recovery = :codes WHERE id = :id"
+            "UPDATE users SET updated_at = NOW() WHERE id = :id"
         )->execute([
             'codes' => json_encode($hashedCodes),
             'id'    => (int) $user['id'],
@@ -258,7 +256,7 @@ class SettingsController extends Controller
 
         return $this->view('client/settings/2fa-recovery', [
             'recoveryCodes' => $recoveryCodes,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -273,13 +271,13 @@ class SettingsController extends Controller
         ]);
 
         if (!empty($errors)) {
-            return $this->redirect('/client/settings/security', [
+            return $this->redirect('/dashboard/security', [
                 'error' => 'Password is required to disable 2FA.',
             ]);
         }
 
-        if (!$this->userModel->verifyPassword($_POST['password'], $user['password_hash'])) {
-            return $this->redirect('/client/settings/security', [
+        if (!$this->userModel->verifyPassword($_POST['password'], $user['password'])) {
+            return $this->redirect('/dashboard/security', [
                 'error' => 'Incorrect password.',
             ]);
         }
@@ -290,7 +288,7 @@ class SettingsController extends Controller
             'updated_at'          => date('Y-m-d H:i:s'),
         ]);
 
-        return $this->redirect('/client/settings/security', [
+        return $this->redirect('/dashboard/security', [
             'success' => 'Two-factor authentication has been disabled.',
         ]);
     }
@@ -308,14 +306,14 @@ class SettingsController extends Controller
         $tenantId = (int) tenant()['id'];
 
         $stmt = $db->prepare(
-            "SELECT * FROM api_keys WHERE tenant_id = :tid ORDER BY created_at DESC"
+            "SELECT * FROM api_tokens WHERE tenant_id = :tid ORDER BY created_at DESC"
         );
         $stmt->execute(['tid' => $tenantId]);
         $apiKeys = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         return $this->view('client/settings/api', [
             'apiKeys' => $apiKeys,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -330,7 +328,7 @@ class SettingsController extends Controller
         ]);
 
         if (!empty($errors)) {
-            return $this->redirect('/client/settings/api', [
+            return $this->redirect('/dashboard/api', [
                 'error' => 'A name is required for the API key.',
             ]);
         }
@@ -341,7 +339,7 @@ class SettingsController extends Controller
         $prefix    = substr($rawKey, 0, 10) . '...';
 
         $this->db()->prepare(
-            "INSERT INTO api_keys (tenant_id, name, key_hash, key_prefix, permissions, is_active, expires_at, created_at)
+            "INSERT INTO api_tokens (tenant_id, name, key_hash, key_prefix, permissions, is_active, expires_at, created_at)
              VALUES (:tid, :name, :hash, :prefix, :perms, 1, :expires, NOW())"
         )->execute([
             'tid'     => $tenantId,
@@ -357,7 +355,7 @@ class SettingsController extends Controller
         // Flash the raw key (only shown once)
         $_SESSION['flash_api_key'] = $rawKey;
 
-        return $this->redirect('/client/settings/api', [
+        return $this->redirect('/dashboard/api', [
             'success'   => 'API key generated. Copy it now -- it will not be shown again.',
             'newApiKey' => $rawKey,
         ]);
@@ -371,18 +369,18 @@ class SettingsController extends Controller
         $tenantId = (int) tenant()['id'];
 
         $stmt = $this->db()->prepare(
-            "SELECT * FROM api_keys WHERE id = :id AND tenant_id = :tid"
+            "SELECT * FROM api_tokens WHERE id = :id AND tenant_id = :tid"
         );
         $stmt->execute(['id' => (int) $id, 'tid' => $tenantId]);
         $apiKey = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$apiKey) {
-            return $this->redirect('/client/settings/api', ['error' => 'API key not found.']);
+            return $this->redirect('/dashboard/api', ['error' => 'API key not found.']);
         }
 
-        $this->db()->prepare("DELETE FROM api_keys WHERE id = :id")->execute(['id' => (int) $id]);
+        $this->db()->prepare("DELETE FROM api_tokens WHERE id = :id")->execute(['id' => (int) $id]);
 
-        return $this->redirect('/client/settings/api', [
+        return $this->redirect('/dashboard/api', [
             'success' => "API key \"{$apiKey['name']}\" has been revoked.",
         ]);
     }
@@ -407,7 +405,7 @@ class SettingsController extends Controller
 
         return $this->view('client/settings/pixels', [
             'pixels' => $pixels,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -424,7 +422,7 @@ class SettingsController extends Controller
         ]);
 
         if (!empty($errors)) {
-            return $this->redirect('/client/settings/pixels', [
+            return $this->redirect('/dashboard/pixels', [
                 'error' => 'Please fill in all required fields correctly.',
             ]);
         }
@@ -466,7 +464,7 @@ class SettingsController extends Controller
             ]);
         }
 
-        return $this->redirect('/client/settings/pixels', [
+        return $this->redirect('/dashboard/pixels', [
             'success' => 'Tracking pixel saved.',
         ]);
     }
@@ -485,7 +483,7 @@ class SettingsController extends Controller
             'tid' => $tenantId,
         ]);
 
-        return $this->redirect('/client/settings/pixels', [
+        return $this->redirect('/dashboard/pixels', [
             'success' => 'Tracking pixel removed.',
         ]);
     }
@@ -508,7 +506,7 @@ class SettingsController extends Controller
 
         // Check if AI is enabled platform-wide
         $globalAiStmt = $db->prepare(
-            "SELECT setting_value FROM settings WHERE setting_key = 'ai_enabled_for_clients' LIMIT 1"
+            "SELECT `value` FROM system_settings WHERE `key` = 'ai_enabled_for_clients' LIMIT 1"
         );
         $globalAiStmt->execute();
         $aiEnabledGlobally = (bool) $globalAiStmt->fetchColumn();
@@ -516,7 +514,7 @@ class SettingsController extends Controller
         return $this->view('client/settings/ai', [
             'aiSettings'        => $aiSettings,
             'aiEnabledGlobally' => $aiEnabledGlobally,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -545,7 +543,7 @@ class SettingsController extends Controller
             'id'       => $tenantId,
         ]);
 
-        return $this->redirect('/client/settings/ai', [
+        return $this->redirect('/dashboard/ai', [
             'success' => 'AI settings saved.',
         ]);
     }

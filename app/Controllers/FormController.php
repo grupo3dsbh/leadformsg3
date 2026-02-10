@@ -31,7 +31,7 @@ class FormController extends Controller
      *
      * @param string $slug The form's public slug.
      */
-    public function render(string $slug): string
+    public function showForm(string $slug): string
     {
         $form = $this->loadFormBySlug($slug);
 
@@ -327,7 +327,7 @@ class FormController extends Controller
 
             // Create the partial entry.
             $stmt = $db->prepare(
-                'INSERT INTO entries (form_id, tenant_id, status, continuation_token, ip_address, user_agent, created_at, updated_at)
+                'INSERT INTO entries (form_id, tenant_id, status, unique_token, ip_address, user_agent, created_at, updated_at)
                  VALUES (:form_id, :tenant_id, :status, :token, :ip, :ua, :created_at, :updated_at)'
             );
             $stmt->execute([
@@ -392,7 +392,7 @@ class FormController extends Controller
                 'SELECT e.*, f.slug as form_slug, f.title as form_title, f.settings as form_settings, f.status as form_status
                  FROM entries e
                  JOIN forms f ON f.id = e.form_id
-                 WHERE e.continuation_token = :token AND e.status = :status
+                 WHERE e.unique_token = :token AND e.status = :status
                  LIMIT 1'
             );
             $stmt->execute(['token' => $token, 'status' => 'partial']);
@@ -765,7 +765,7 @@ class FormController extends Controller
             $stmt->execute([
                 'form_id'    => (int) $form['id'],
                 'tenant_id'  => (int) ($form['tenant_id'] ?? 0),
-                'status'     => 'completed',
+                'status'     => 'complete',
                 'ip'         => $_SERVER['REMOTE_ADDR'] ?? '',
                 'ua'         => $_SERVER['HTTP_USER_AGENT'] ?? '',
                 'referrer'   => $_SERVER['HTTP_REFERER'] ?? '',
@@ -787,12 +787,12 @@ class FormController extends Controller
         try {
             $db   = \Core\Database::getInstance();
             $stmt = $db->prepare(
-                'INSERT INTO entry_values (entry_id, form_id, field_id, field_slug, value, created_at)
-                 VALUES (:entry_id, :form_id, :field_id, :field_slug, :value, :created_at)'
+                'INSERT INTO entry_values (entry_id, field_id, field_type, value, created_at)
+                 VALUES (:entry_id, :field_id, :field_type, :value, :created_at)'
             );
 
             foreach ($fields as $field) {
-                $key   = 'field_' . ($field['id'] ?? $field['slug'] ?? '');
+                $key   = 'field_' . ($field['id'] ?? '');
                 $value = $values[$key] ?? null;
 
                 if ($value === null) {
@@ -806,9 +806,8 @@ class FormController extends Controller
 
                 $stmt->execute([
                     'entry_id'   => $entryId,
-                    'form_id'    => $formId,
                     'field_id'   => (int) ($field['id'] ?? 0),
-                    'field_slug' => $field['slug'] ?? '',
+                    'field_type' => $field['type'] ?? 'text',
                     'value'      => (string) $value,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
@@ -826,14 +825,14 @@ class FormController extends Controller
         try {
             $db   = \Core\Database::getInstance();
             $stmt = $db->prepare(
-                'SELECT field_id, field_slug, value FROM entry_values WHERE entry_id = :entry_id'
+                'SELECT field_id, value FROM entry_values WHERE entry_id = :entry_id'
             );
             $stmt->execute(['entry_id' => $entryId]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
             $values = [];
             foreach ($rows as $row) {
-                $key = 'field_' . ($row['field_id'] ?: $row['field_slug']);
+                $key = 'field_' . $row['field_id'];
                 $values[$key] = $row['value'];
             }
 
@@ -856,7 +855,7 @@ class FormController extends Controller
             $db = \Core\Database::getInstance();
 
             // Increment form view counter.
-            $db->prepare('UPDATE forms SET view_count = view_count + 1 WHERE id = :id')
+            $db->prepare('UPDATE forms SET views_count = views_count + 1 WHERE id = :id')
                ->execute(['id' => (int) $form['id']]);
 
             // Log detailed visit.
@@ -882,7 +881,7 @@ class FormController extends Controller
     {
         try {
             $db = \Core\Database::getInstance();
-            $db->prepare('UPDATE forms SET entry_count = entry_count + 1 WHERE id = :id')
+            $db->prepare('UPDATE forms SET submissions_count = submissions_count + 1 WHERE id = :id')
                ->execute(['id' => $formId]);
         } catch (\Throwable) {
             // Non-critical.

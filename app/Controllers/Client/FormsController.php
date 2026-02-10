@@ -385,13 +385,32 @@ class FormsController extends Controller
         $updates = ['updated_at = NOW()'];
         $params = ['id' => (int) $formId, 'tid' => (int) tenant()['id']];
 
+        // Save fields to form_fields table
         if ($fields !== null) {
             $decoded = json_decode($fields, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return $this->json(['success' => false, 'error' => 'Invalid fields JSON.'], 400);
             }
-            $updates[] = 'fields = :fields';
-            $params['fields'] = json_encode($decoded);
+
+            $db = $this->db();
+            $db->prepare("DELETE FROM form_fields WHERE form_id = :fid")->execute(['fid' => (int) $formId]);
+
+            $sortOrder = 0;
+            $fieldStmt = $db->prepare(
+                "INSERT INTO form_fields (form_id, type, label, placeholder, required, settings, sort_order, created_at, updated_at)
+                 VALUES (:fid, :type, :label, :placeholder, :required, :settings, :sort, NOW(), NOW())"
+            );
+            foreach ($decoded as $field) {
+                $fieldStmt->execute([
+                    'fid'         => (int) $formId,
+                    'type'        => $field['type'] ?? 'text',
+                    'label'       => $field['label'] ?? $field['name'] ?? '',
+                    'placeholder' => $field['placeholder'] ?? '',
+                    'required'    => !empty($field['required']) ? 1 : 0,
+                    'settings'    => json_encode($field['settings'] ?? $field),
+                    'sort'        => $sortOrder++,
+                ]);
+            }
         }
 
         if ($title !== null) {
@@ -402,11 +421,6 @@ class FormsController extends Controller
         if (!empty($_POST['settings'])) {
             $updates[] = 'settings = :settings';
             $params['settings'] = $_POST['settings'];
-        }
-
-        if (!empty($_POST['theme'])) {
-            $updates[] = 'theme = :theme';
-            $params['theme'] = $_POST['theme'];
         }
 
         $sql = "UPDATE forms SET " . implode(', ', $updates) . " WHERE id = :id AND tenant_id = :tid";
@@ -583,7 +597,8 @@ class FormsController extends Controller
             return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
-        $theme = json_decode($form['theme'] ?? '{}', true) ?: [];
+        $settings = json_decode($form['settings'] ?? '{}', true) ?: [];
+        $theme = $settings['theme'] ?? [];
 
         return $this->view('client/forms/theme', [
             'form'  => $form,
@@ -623,11 +638,15 @@ class FormsController extends Controller
             'logo_url'               => trim($_POST['logo_url'] ?? ''),
         ];
 
+        // Store theme inside settings JSON column
+        $settings = json_decode($form['settings'] ?? '{}', true) ?: [];
+        $settings['theme'] = $theme;
+
         $this->db()->prepare(
-            "UPDATE forms SET theme = :theme, updated_at = NOW() WHERE id = :id AND tenant_id = :tid"
+            "UPDATE forms SET settings = :settings, updated_at = NOW() WHERE id = :id AND tenant_id = :tid"
         )->execute([
-            'theme' => json_encode($theme),
-            'id'    => (int) $id,
+            'settings' => json_encode($settings),
+            'id'       => (int) $id,
             'tid'   => (int) tenant()['id'],
         ]);
 

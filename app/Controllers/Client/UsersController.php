@@ -44,7 +44,7 @@ class UsersController extends Controller
         $params = ['tid' => $tenantId];
 
         if ($search !== '') {
-            $where[]          = '(u.email LIKE :search OR u.first_name LIKE :search OR u.last_name LIKE :search)';
+            $where[]          = '(u.email LIKE :search OR u.name LIKE :search)';
             $params['search'] = "%{$search}%";
         }
 
@@ -82,7 +82,7 @@ class UsersController extends Controller
             'totalPages' => (int) ceil($total / $perPage),
             'search'     => $search,
             'role'       => $role,
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -93,21 +93,20 @@ class UsersController extends Controller
         $tenantData = tenant();
 
         if (!$this->tenantModel->canAddUser($tenantData)) {
-            return $this->redirect('/client/users', [
+            return $this->redirect('/dashboard/users', [
                 'error' => 'You have reached the maximum number of team members allowed by your plan.',
             ]);
         }
 
         return $this->view('client/users/create', [
             'user'             => [
-                'email'      => '',
-                'first_name' => '',
-                'last_name'  => '',
-                'role'       => 'member',
+                'email' => '',
+                'name'  => '',
+                'role'  => 'viewer',
             ],
             'availableRoles'   => $this->getAvailableRoles(),
             'allPermissions'   => $this->getAllPermissions(),
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -118,16 +117,15 @@ class UsersController extends Controller
         $tenantData = tenant();
 
         if (!$this->tenantModel->canAddUser($tenantData)) {
-            return $this->redirect('/client/users', [
+            return $this->redirect('/dashboard/users', [
                 'error' => 'User limit reached for your current plan.',
             ]);
         }
 
         $errors = $this->validate($_POST, [
-            'email'      => 'required|email',
-            'first_name' => 'required|string|max:100',
-            'last_name'  => 'required|string|max:100',
-            'role'       => 'required|in:admin,editor,member',
+            'email' => 'required|email',
+            'name'  => 'required|string|max:255',
+            'role'  => 'required|in:admin,editor,viewer',
         ]);
 
         if (!empty($errors)) {
@@ -136,7 +134,7 @@ class UsersController extends Controller
                 'errors'           => $errors,
                 'availableRoles'   => $this->getAvailableRoles(),
                 'allPermissions'   => $this->getAllPermissions(),
-            ]);
+            ], 'layouts.client');
         }
 
         // Check if email already exists in this tenant
@@ -154,34 +152,27 @@ class UsersController extends Controller
                 'errors'           => ['email' => 'A user with this email already exists in your team.'],
                 'availableRoles'   => $this->getAvailableRoles(),
                 'allPermissions'   => $this->getAllPermissions(),
-            ]);
+            ], 'layouts.client');
         }
-
-        // Build permissions array
-        $permissions = isset($_POST['permissions']) && is_array($_POST['permissions'])
-            ? array_values($_POST['permissions'])
-            : [];
 
         // Generate a random temporary password
         $tempPassword = bin2hex(random_bytes(16));
 
         $this->db()->prepare(
-            "INSERT INTO users (tenant_id, email, password_hash, first_name, last_name, role, permissions, is_active, created_at, updated_at)
-             VALUES (:tid, :email, :pass, :fname, :lname, :role, :perms, 1, NOW(), NOW())"
+            "INSERT INTO users (tenant_id, email, password, name, role, status, locale, timezone, email_verified_at, created_at, updated_at)
+             VALUES (:tid, :email, :pass, :name, :role, 'active', 'pt_BR', 'America/Sao_Paulo', NOW(), NOW(), NOW())"
         )->execute([
             'tid'   => (int) $tenantData['id'],
             'email' => trim($_POST['email']),
-            'pass'  => password_hash($tempPassword, PASSWORD_ARGON2ID),
-            'fname' => trim($_POST['first_name']),
-            'lname' => trim($_POST['last_name']),
+            'pass'  => password_hash($tempPassword, PASSWORD_BCRYPT),
+            'name'  => trim($_POST['name']),
             'role'  => $_POST['role'],
-            'perms' => json_encode($permissions),
         ]);
 
         // In a production app, send an invitation email with the temp password
         // or a password-reset link. For now, we redirect with a message.
 
-        return $this->redirect('/client/users', [
+        return $this->redirect('/dashboard/users', [
             'success' => "User \"{$_POST['email']}\" has been created and invited to the team.",
         ]);
     }
@@ -194,16 +185,14 @@ class UsersController extends Controller
         $user = $this->findTenantUser((int) $id);
 
         if (!$user) {
-            return $this->redirect('/client/users', ['error' => 'User not found.']);
+            return $this->redirect('/dashboard/users', ['error' => 'User not found.']);
         }
 
-        $user['decoded_permissions'] = json_decode($user['permissions'] ?? '[]', true) ?: [];
-
-        return $this->view('client/users/edit', [
+            return $this->view('client/users/edit', [
             'user'             => $user,
             'availableRoles'   => $this->getAvailableRoles(),
             'allPermissions'   => $this->getAllPermissions(),
-        ]);
+        ], 'layouts.client');
     }
 
     /**
@@ -214,13 +203,12 @@ class UsersController extends Controller
         $user = $this->findTenantUser((int) $id);
 
         if (!$user) {
-            return $this->redirect('/client/users', ['error' => 'User not found.']);
+            return $this->redirect('/dashboard/users', ['error' => 'User not found.']);
         }
 
         $errors = $this->validate($_POST, [
-            'first_name' => 'required|string|max:100',
-            'last_name'  => 'required|string|max:100',
-            'role'       => 'required|in:admin,editor,member',
+            'name' => 'required|string|max:255',
+            'role' => 'required|in:admin,editor,viewer',
         ]);
 
         if (!empty($errors)) {
@@ -229,7 +217,7 @@ class UsersController extends Controller
                 'errors'           => $errors,
                 'availableRoles'   => $this->getAvailableRoles(),
                 'allPermissions'   => $this->getAllPermissions(),
-            ]);
+            ], 'layouts.client');
         }
 
         // Prevent demoting yourself
@@ -239,30 +227,24 @@ class UsersController extends Controller
                 'errors'           => ['role' => 'You cannot change your own role.'],
                 'availableRoles'   => $this->getAvailableRoles(),
                 'allPermissions'   => $this->getAllPermissions(),
-            ]);
+            ], 'layouts.client');
         }
 
-        $permissions = isset($_POST['permissions']) && is_array($_POST['permissions'])
-            ? array_values($_POST['permissions'])
-            : [];
-
         $updateData = [
-            'first_name'  => trim($_POST['first_name']),
-            'last_name'   => trim($_POST['last_name']),
-            'role'        => $_POST['role'],
-            'permissions' => json_encode($permissions),
-            'is_active'   => !empty($_POST['is_active']) ? 1 : 0,
-            'updated_at'  => date('Y-m-d H:i:s'),
+            'name'       => trim($_POST['name']),
+            'role'       => $_POST['role'],
+            'status'     => !empty($_POST['is_active']) ? 'active' : 'inactive',
+            'updated_at' => date('Y-m-d H:i:s'),
         ];
 
         // Update password if provided
         if (!empty($_POST['password']) && strlen($_POST['password']) >= 8) {
-            $updateData['password_hash'] = password_hash($_POST['password'], PASSWORD_ARGON2ID);
+            $updateData['password'] = password_hash($_POST['password'], PASSWORD_BCRYPT);
         }
 
         $this->userModel->update((int) $id, $updateData);
 
-        return $this->redirect('/client/users', [
+        return $this->redirect('/dashboard/users', [
             'success' => 'User updated successfully.',
         ]);
     }
@@ -275,12 +257,12 @@ class UsersController extends Controller
         $user = $this->findTenantUser((int) $id);
 
         if (!$user) {
-            return $this->redirect('/client/users', ['error' => 'User not found.']);
+            return $this->redirect('/dashboard/users', ['error' => 'User not found.']);
         }
 
         // Prevent self-deletion
         if ((int) $user['id'] === (int) auth()['id']) {
-            return $this->redirect('/client/users', [
+            return $this->redirect('/dashboard/users', [
                 'error' => 'You cannot remove yourself from the team.',
             ]);
         }
@@ -288,14 +270,14 @@ class UsersController extends Controller
         // Prevent deleting the tenant owner
         $tenantData = tenant();
         if ((int) $user['id'] === (int) ($tenantData['owner_id'] ?? 0)) {
-            return $this->redirect('/client/users', [
+            return $this->redirect('/dashboard/users', [
                 'error' => 'The account owner cannot be removed.',
             ]);
         }
 
         $this->userModel->delete((int) $id);
 
-        return $this->redirect('/client/users', [
+        return $this->redirect('/dashboard/users', [
             'success' => "User \"{$user['email']}\" has been removed from the team.",
         ]);
     }
@@ -308,7 +290,7 @@ class UsersController extends Controller
         $user = $this->findTenantUser((int) $id);
 
         if (!$user) {
-            return $this->redirect('/client/users', ['error' => 'User not found.']);
+            return $this->redirect('/dashboard/users', ['error' => 'User not found.']);
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -321,18 +303,15 @@ class UsersController extends Controller
                 'updated_at'  => date('Y-m-d H:i:s'),
             ]);
 
-            return $this->redirect("/client/users/{$id}/permissions", [
+            return $this->redirect("/dashboard/users/{$id}/permissions", [
                 'success' => 'Permissions updated.',
             ]);
         }
 
-        $currentPermissions = json_decode($user['permissions'] ?? '[]', true) ?: [];
-
         return $this->view('client/users/permissions', [
             'user'               => $user,
-            'currentPermissions' => $currentPermissions,
             'allPermissions'     => $this->getAllPermissions(),
-        ]);
+        ], 'layouts.client');
     }
 
     // -------------------------------------------------------------------------
@@ -363,7 +342,7 @@ class UsersController extends Controller
         return [
             'admin'  => 'Admin - Full access to all settings and features',
             'editor' => 'Editor - Can create and manage forms and entries',
-            'member' => 'Member - View-only access to forms and entries',
+            'viewer' => 'Viewer - View-only access to forms and entries',
         ];
     }
 

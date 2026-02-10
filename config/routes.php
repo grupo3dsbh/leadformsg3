@@ -220,7 +220,7 @@ $router->group('/api/v1', ['middleware' => 'api'], function ($router) {
 // Public form rendering and submission
 // ======================================================================
 
-$router->get('/f/{slug}', 'FormController@render');
+$router->get('/f/{slug}', 'FormController@showForm');
 $router->post('/f/{slug}/submit', 'FormController@submit');
 $router->post('/f/{slug}/save-partial', 'FormController@savePartial');
 $router->get('/f/{slug}/continue/{token}', 'FormController@continueForm');

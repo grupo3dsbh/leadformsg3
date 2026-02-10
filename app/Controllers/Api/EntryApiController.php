@@ -117,7 +117,7 @@ class EntryApiController extends Controller
         }
 
         // Check if form is published (unless explicitly allowing draft submissions)
-        if (empty($form['is_published']) && empty($input['allow_draft'])) {
+        if (($form['status'] ?? 'draft') !== 'published' && empty($input['allow_draft'])) {
             return $this->json(['error' => 'This form is not currently accepting submissions.'], 403);
         }
 

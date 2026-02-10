@@ -332,7 +332,7 @@ class HomeController extends Controller
     {
         try {
             $db   = \Core\Database::getInstance();
-            $stmt = $db->prepare('SELECT content FROM pages WHERE slug = :slug AND is_published = 1 LIMIT 1');
+            $stmt = $db->prepare("SELECT content FROM pages WHERE slug = :slug AND status = 'published' LIMIT 1");
             $stmt->execute(['slug' => $slug]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -362,7 +362,7 @@ class HomeController extends Controller
         try {
             $db   = \Core\Database::getInstance();
             $stmt = $db->prepare(
-                'SELECT * FROM pages WHERE slug = :slug AND is_published = 1 LIMIT 1'
+                "SELECT * FROM pages WHERE slug = :slug AND status = 'published' LIMIT 1"
             );
             $stmt->execute(['slug' => $slug]);
             $page = $stmt->fetch(\PDO::FETCH_ASSOC);
