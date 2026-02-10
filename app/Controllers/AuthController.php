@@ -64,7 +64,7 @@ class AuthController extends Controller
         ];
 
         $data   = $this->only(['email', 'password', 'remember']);
-        $errors = $this->validate($data, $rules);
+        $errors = $this->validateInput($data, $rules);
 
         if (!empty($errors)) {
             return $this->redirectBack([
@@ -155,7 +155,7 @@ class AuthController extends Controller
         ];
 
         $data   = $this->only(['first_name', 'last_name', 'email', 'password', 'password_confirmation', 'company_name', 'plan']);
-        $errors = $this->validate($data, $rules);
+        $errors = $this->validateInput($data, $rules);
 
         // Password confirmation.
         if (($data['password'] ?? '') !== ($data['password_confirmation'] ?? '')) {
@@ -283,7 +283,7 @@ class AuthController extends Controller
         }
 
         $email  = trim($_POST['email'] ?? '');
-        $errors = $this->validate(['email' => $email], ['email' => 'required|email']);
+        $errors = $this->validateInput(['email' => $email], ['email' => 'required|email']);
 
         if (!empty($errors)) {
             return $this->redirectBack(['errors' => $errors, 'old' => ['email' => $email]]);
@@ -339,7 +339,7 @@ class AuthController extends Controller
             'password' => 'required|min:8|max:128',
         ];
 
-        $errors = $this->validate($data, $rules);
+        $errors = $this->validateInput($data, $rules);
 
         if (($data['password'] ?? '') !== ($data['password_confirmation'] ?? '')) {
             $errors['password_confirmation'] = 'Passwords do not match.';
@@ -560,7 +560,7 @@ class AuthController extends Controller
     /**
      * Check whether the current user is already logged in.
      */
-    private function isAuthenticated(): bool
+    protected function isAuthenticated(): bool
     {
         return !empty($_SESSION['user_id']) && !empty($_SESSION['user']);
     }
@@ -901,14 +901,28 @@ class AuthController extends Controller
 
     /**
      * Return only the specified keys from $_POST.
+     * Overrides parent to only read from POST data for security.
      */
-    private function only(array $keys): array
+    protected function only(array $keys): array
     {
         $result = [];
         foreach ($keys as $key) {
             $result[$key] = $_POST[$key] ?? null;
         }
         return $result;
+    }
+
+    /**
+     * Validate input and return errors array (empty if valid).
+     * Unlike parent's validate() which throws, this returns errors for form handling.
+     */
+    private function validateInput(array $data, array $rules): array
+    {
+        $validator = new \Core\Validator($data, $rules);
+        if (!$validator->passes()) {
+            return $validator->errors();
+        }
+        return [];
     }
 
     /**
@@ -929,7 +943,7 @@ class AuthController extends Controller
     /**
      * Set a flash message in the session.
      */
-    private function flash(string $key, mixed $value): void
+    protected function flash(string $key, mixed $value): void
     {
         $_SESSION['_flash'][$key] = $value;
     }

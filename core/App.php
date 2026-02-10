@@ -22,9 +22,10 @@ class App
     // Lifecycle
     // ----------------------------------------------------------------
 
-    private function __construct()
+    public function __construct()
     {
         $this->bootstrap();
+        static::$instance = $this;
     }
 
     /**
