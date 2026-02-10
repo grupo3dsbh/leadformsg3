@@ -224,7 +224,7 @@
                             <div class="font-medium text-sm truncate" style="color:var(--gray-800)"><?= e($client['name']) ?></div>
                             <div class="text-xs text-gray-400"><?= e($client['slug']) ?></div>
                         </div>
-                        <?php if (!empty($client['is_active'])): ?>
+                        <?php if (($client['status'] ?? '') === 'active'): ?>
                             <span class="badge badge-success">Ativo</span>
                         <?php else: ?>
                             <span class="badge badge-danger">Suspenso</span>

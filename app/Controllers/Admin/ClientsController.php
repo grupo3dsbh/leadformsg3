@@ -42,7 +42,7 @@ class ClientsController extends Controller
         $perPage  = 20;
         $offset   = ($page - 1) * $perPage;
 
-        $allowedSorts = ['name', 'created_at', 'is_active', 'slug'];
+        $allowedSorts = ['name', 'created_at', 'status', 'slug'];
         if (!in_array($sortBy, $allowedSorts, true)) {
             $sortBy = 'created_at';
         }
@@ -56,9 +56,9 @@ class ClientsController extends Controller
         }
 
         if ($status === 'active') {
-            $where[] = 't.is_active = 1';
+            $where[] = "t.status = 'active'";
         } elseif ($status === 'suspended') {
-            $where[] = 't.is_active = 0';
+            $where[] = "t.status = 'suspended'";
         }
 
         if ($planId !== '') {
@@ -281,7 +281,7 @@ class ClientsController extends Controller
         }
 
         $this->tenantModel->update((int) $id, [
-            'is_active'  => 0,
+            'status'     => 'suspended',
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
@@ -305,7 +305,7 @@ class ClientsController extends Controller
         }
 
         $this->tenantModel->update((int) $id, [
-            'is_active'  => 1,
+            'status'     => 'active',
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 

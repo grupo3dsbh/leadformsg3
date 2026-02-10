@@ -31,7 +31,7 @@ class DashboardController extends Controller
         )->fetchColumn();
 
         $activeClients = (int) $db->query(
-            "SELECT COUNT(*) FROM tenants WHERE is_active = 1"
+            "SELECT COUNT(*) FROM tenants WHERE status = 'active'"
         )->fetchColumn();
 
         $totalForms = (int) $db->query(
@@ -99,7 +99,7 @@ class DashboardController extends Controller
         // --- Recent activity ----------------------------------------------------
 
         $recentClients = $db->query(
-            "SELECT id, name, slug, is_active, created_at
+            "SELECT id, name, slug, status, created_at
                FROM tenants
               ORDER BY created_at DESC
               LIMIT 10"
@@ -137,7 +137,7 @@ class DashboardController extends Controller
             "SELECT COUNT(*) FROM tenants WHERE DATE(created_at) = CURDATE()"
         )->fetchColumn();
 
-        return $this->view('admin/dashboard', [
+        return $this->view('admin.dashboard', [
             'totalClients'     => $totalClients,
             'activeClients'    => $activeClients,
             'totalForms'       => $totalForms,
@@ -153,6 +153,6 @@ class DashboardController extends Controller
             'planDistribution' => $planDistribution,
             'todayEntries'     => $todayEntries,
             'todaySignups'     => $todaySignups,
-        ]);
+        ], 'layouts.admin');
     }
 }
