@@ -84,19 +84,18 @@ class Tenant extends Model
         $plan = $this->plan($tenant);
 
         if ($plan === null) {
-            return false;
+            return true; // No plan = allow
         }
 
-        $limits = json_decode($plan['limits'] ?? '{}', true) ?: [];
-        $maxForms = $limits['max_forms'] ?? null;
+        $maxForms = (int) ($plan['max_forms'] ?? 0);
 
-        if ($maxForms === null) {
-            return true;
+        if ($maxForms === 0) {
+            return true; // 0 = unlimited
         }
 
         $formCount = count($this->forms((int) $tenant['id']));
 
-        return $formCount < (int) $maxForms;
+        return $formCount < $maxForms;
     }
 
     public function canAddUser(array $tenant): bool
@@ -104,19 +103,18 @@ class Tenant extends Model
         $plan = $this->plan($tenant);
 
         if ($plan === null) {
-            return false;
+            return true;
         }
 
-        $limits = json_decode($plan['limits'] ?? '{}', true) ?: [];
-        $maxUsers = $limits['max_users'] ?? null;
+        $maxUsers = (int) ($plan['max_users'] ?? 0);
 
-        if ($maxUsers === null) {
+        if ($maxUsers === 0) {
             return true;
         }
 
         $userCount = count($this->users((int) $tenant['id']));
 
-        return $userCount < (int) $maxUsers;
+        return $userCount < $maxUsers;
     }
 
     public function generateApiKey(int $tenantId): string

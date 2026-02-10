@@ -131,7 +131,7 @@ if (!empty($conversionRates)) {
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <?php if (!empty($form['is_published'])): ?>
+                        <?php if (($form['status'] ?? 'draft') === 'published'): ?>
                             <span class="badge badge-success">Ativo</span>
                         <?php else: ?>
                             <span class="badge badge-gray">Rascunho</span>

@@ -31,15 +31,15 @@
         <div class="stat-label">Respostas</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value"><?= (int) ($form['views'] ?? 0) ?></div>
+        <div class="stat-value"><?= (int) ($form['views_count'] ?? 0) ?></div>
         <div class="stat-label">Visualizacoes</div>
     </div>
     <div class="stat-card">
         <div class="stat-value">
-            <?php if (!empty($form['is_published'])): ?>
+            <?php if (($form['status'] ?? 'draft') === 'published'): ?>
                 <span class="badge badge-success">Publicado</span>
             <?php else: ?>
-                <span class="badge badge-gray">Rascunho</span>
+                <span class="badge badge-gray"><?= ucfirst(e($form['status'] ?? 'draft')) ?></span>
             <?php endif; ?>
         </div>
         <div class="stat-label">Status</div>

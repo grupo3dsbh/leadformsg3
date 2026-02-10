@@ -39,7 +39,7 @@ class FormsController extends Controller
         $perPage = 15;
         $offset  = ($page - 1) * $perPage;
 
-        $allowedSorts = ['title', 'created_at', 'updated_at', 'is_published'];
+        $allowedSorts = ['title', 'created_at', 'updated_at', 'status'];
         if (!in_array($sortBy, $allowedSorts, true)) {
             $sortBy = 'created_at';
         }
@@ -53,9 +53,9 @@ class FormsController extends Controller
         }
 
         if ($status === 'published') {
-            $where[] = 'f.is_published = 1';
+            $where[] = "f.status = 'published'";
         } elseif ($status === 'draft') {
-            $where[] = 'f.is_published = 0';
+            $where[] = "f.status = 'draft'";
         }
 
         $whereClause = 'WHERE ' . implode(' AND ', $where);
@@ -112,13 +112,11 @@ class FormsController extends Controller
 
         return $this->view('client/forms/create', [
             'form' => [
-                'title'        => '',
-                'slug'         => '',
-                'description'  => '',
-                'fields'       => '[]',
-                'settings'     => '{}',
-                'theme'        => '{}',
-                'is_published' => 0,
+                'title'       => '',
+                'slug'        => '',
+                'description' => '',
+                'settings'    => '{}',
+                'status'      => 'draft',
             ],
         ], 'layouts.client');
     }
@@ -137,8 +135,7 @@ class FormsController extends Controller
         }
 
         $errors = $this->validate($_POST, [
-            'title'  => 'required|string|max:255',
-            'fields' => 'required|string',
+            'title' => 'required|string|max:255',
         ]);
 
         if (!empty($errors)) {
@@ -151,36 +148,51 @@ class FormsController extends Controller
         // Generate slug
         $slug = $this->generateSlug($_POST['title']);
 
-        // Validate fields JSON
-        $fields = json_decode($_POST['fields'], true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return $this->view('client/forms/create', [
-                'form'   => $_POST,
-                'errors' => ['fields' => 'Invalid form field configuration.'],
-            ], 'layouts.client');
+        // Parse fields JSON if provided
+        $fields = [];
+        if (!empty($_POST['fields'])) {
+            $fields = json_decode($_POST['fields'], true) ?: [];
         }
 
         $db = $this->db();
 
         $stmt = $db->prepare(
-            "INSERT INTO forms (tenant_id, title, slug, description, fields, settings, theme, is_published, views, created_by, created_at, updated_at)
-             VALUES (:tid, :title, :slug, :desc, :fields, :settings, :theme, 0, 0, :uid, NOW(), NOW())"
+            "INSERT INTO forms (tenant_id, user_id, title, slug, description, settings, status, views_count, submissions_count, created_at, updated_at)
+             VALUES (:tid, :uid, :title, :slug, :desc, :settings, 'draft', 0, 0, NOW(), NOW())"
         );
         $stmt->execute([
             'tid'      => (int) $tenantData['id'],
+            'uid'      => auth()['id'],
             'title'    => trim($_POST['title']),
             'slug'     => $slug,
             'desc'     => trim($_POST['description'] ?? ''),
-            'fields'   => json_encode($fields),
             'settings' => $_POST['settings'] ?? '{}',
-            'theme'    => $_POST['theme'] ?? '{}',
-            'uid'      => auth()['id'],
         ]);
 
         $formId = $db->lastInsertId();
 
+        // Save form fields to form_fields table
+        if (!empty($fields)) {
+            $sortOrder = 0;
+            $fieldStmt = $db->prepare(
+                "INSERT INTO form_fields (form_id, type, label, placeholder, required, settings, sort_order, created_at, updated_at)
+                 VALUES (:fid, :type, :label, :placeholder, :required, :settings, :sort, NOW(), NOW())"
+            );
+            foreach ($fields as $field) {
+                $fieldStmt->execute([
+                    'fid'         => (int) $formId,
+                    'type'        => $field['type'] ?? 'text',
+                    'label'       => $field['label'] ?? $field['name'] ?? '',
+                    'placeholder' => $field['placeholder'] ?? '',
+                    'required'    => !empty($field['required']) ? 1 : 0,
+                    'settings'    => json_encode($field['settings'] ?? $field),
+                    'sort'        => $sortOrder++,
+                ]);
+            }
+        }
+
         return $this->redirect("/dashboard/forms/{$formId}/edit", [
-            'success' => 'Form created successfully.',
+            'success' => 'Formulario criado com sucesso.',
         ]);
     }
 
@@ -197,7 +209,7 @@ class FormsController extends Controller
 
         $db = $this->db();
 
-        $fields = json_decode($form['fields'] ?? '[]', true) ?: [];
+        $fields = $this->getFormFields((int) $id);
         $settings = json_decode($form['settings'] ?? '{}', true) ?: [];
 
         // Entry count
@@ -224,7 +236,7 @@ class FormsController extends Controller
             return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
-        $fields = json_decode($form['fields'] ?? '[]', true) ?: [];
+        $fields = $this->getFormFields((int) $id);
 
         return $this->view('client/forms/edit', [
             'form'   => $form,
@@ -244,24 +256,15 @@ class FormsController extends Controller
         }
 
         $errors = $this->validate($_POST, [
-            'title'  => 'required|string|max:255',
-            'fields' => 'required|string',
+            'title' => 'required|string|max:255',
         ]);
 
         if (!empty($errors)) {
+            $formFields = $this->getFormFields((int) $id);
             return $this->view('client/forms/edit', [
                 'form'   => array_merge($form, $_POST),
-                'fields' => json_decode($_POST['fields'] ?? '[]', true) ?: [],
+                'fields' => $formFields,
                 'errors' => $errors,
-            ], 'layouts.client');
-        }
-
-        $fields = json_decode($_POST['fields'], true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return $this->view('client/forms/edit', [
-                'form'   => array_merge($form, $_POST),
-                'fields' => [],
-                'errors' => ['fields' => 'Invalid form field configuration.'],
             ], 'layouts.client');
         }
 
@@ -271,14 +274,12 @@ class FormsController extends Controller
             "UPDATE forms
                 SET title       = :title,
                     description = :desc,
-                    fields      = :fields,
                     updated_at  = NOW()
               WHERE id = :id AND tenant_id = :tid"
         );
         $stmt->execute([
             'title'  => trim($_POST['title']),
             'desc'   => trim($_POST['description'] ?? ''),
-            'fields' => json_encode($fields),
             'id'     => (int) $id,
             'tid'    => (int) tenant()['id'],
         ]);
@@ -313,21 +314,40 @@ class FormsController extends Controller
         $db = $this->db();
 
         $stmt = $db->prepare(
-            "INSERT INTO forms (tenant_id, title, slug, description, fields, settings, theme, is_published, views, created_by, created_at, updated_at)
-             VALUES (:tid, :title, :slug, :desc, :fields, :settings, :theme, 0, 0, :uid, NOW(), NOW())"
+            "INSERT INTO forms (tenant_id, user_id, title, slug, description, settings, status, views_count, submissions_count, created_at, updated_at)
+             VALUES (:tid, :uid, :title, :slug, :desc, :settings, 'draft', 0, 0, NOW(), NOW())"
         );
         $stmt->execute([
             'tid'      => (int) $tenantData['id'],
+            'uid'      => auth()['id'],
             'title'    => $newTitle,
             'slug'     => $newSlug,
             'desc'     => $form['description'] ?? '',
-            'fields'   => $form['fields'] ?? '[]',
             'settings' => $form['settings'] ?? '{}',
-            'theme'    => $form['theme'] ?? '{}',
-            'uid'      => auth()['id'],
         ]);
 
         $newFormId = $db->lastInsertId();
+
+        // Duplicate form_fields
+        $origFields = $db->prepare("SELECT * FROM form_fields WHERE form_id = :fid ORDER BY sort_order ASC");
+        $origFields->execute(['fid' => (int) $id]);
+        $fieldStmt = $db->prepare(
+            "INSERT INTO form_fields (form_id, type, label, description, placeholder, required, settings, sort_order, group_id, created_at, updated_at)
+             VALUES (:fid, :type, :label, :desc, :placeholder, :required, :settings, :sort, :group_id, NOW(), NOW())"
+        );
+        foreach ($origFields->fetchAll(\PDO::FETCH_ASSOC) as $ff) {
+            $fieldStmt->execute([
+                'fid'         => (int) $newFormId,
+                'type'        => $ff['type'],
+                'label'       => $ff['label'],
+                'desc'        => $ff['description'],
+                'placeholder' => $ff['placeholder'],
+                'required'    => $ff['required'],
+                'settings'    => $ff['settings'],
+                'sort'        => $ff['sort_order'],
+                'group_id'    => $ff['group_id'],
+            ]);
+        }
 
         return $this->redirect("/dashboard/forms/{$newFormId}/edit", [
             'success' => 'Form duplicated successfully.',
@@ -434,7 +454,7 @@ class FormsController extends Controller
         }
 
         $this->db()->prepare(
-            "UPDATE forms SET is_published = 1, published_at = NOW(), updated_at = NOW() WHERE id = :id AND tenant_id = :tid"
+            "UPDATE forms SET status = 'published', published_at = NOW(), updated_at = NOW() WHERE id = :id AND tenant_id = :tid"
         )->execute([
             'id'  => (int) $id,
             'tid' => (int) tenant()['id'],
@@ -457,7 +477,7 @@ class FormsController extends Controller
         }
 
         $this->db()->prepare(
-            "UPDATE forms SET is_published = 0, updated_at = NOW() WHERE id = :id AND tenant_id = :tid"
+            "UPDATE forms SET status = 'draft', updated_at = NOW() WHERE id = :id AND tenant_id = :tid"
         )->execute([
             'id'  => (int) $id,
             'tid' => (int) tenant()['id'],
@@ -479,15 +499,13 @@ class FormsController extends Controller
             return $this->redirect('/dashboard/forms', ['error' => 'Form not found.']);
         }
 
-        $fields   = json_decode($form['fields'] ?? '[]', true) ?: [];
+        $fields   = $this->getFormFields((int) $id);
         $settings = json_decode($form['settings'] ?? '{}', true) ?: [];
-        $theme    = json_decode($form['theme'] ?? '{}', true) ?: [];
 
         return $this->view('client/forms/preview', [
             'form'     => $form,
             'fields'   => $fields,
             'settings' => $settings,
-            'theme'    => $theme,
         ], 'layouts.client');
     }
 
@@ -621,6 +639,18 @@ class FormsController extends Controller
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Get all fields for a form from the form_fields table.
+     */
+    private function getFormFields(int $formId): array
+    {
+        $stmt = $this->db()->prepare(
+            "SELECT * FROM form_fields WHERE form_id = :fid ORDER BY sort_order ASC"
+        );
+        $stmt->execute(['fid' => $formId]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
 
     /**
      * Find a form ensuring it belongs to the current tenant.

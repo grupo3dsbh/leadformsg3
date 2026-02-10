@@ -41,15 +41,15 @@ $errors = $errors ?? [];
         <div class="stat-label">Campos</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value"><?= (int) ($form['views'] ?? 0) ?></div>
+        <div class="stat-value"><?= (int) ($form['views_count'] ?? 0) ?></div>
         <div class="stat-label">Visualizacoes</div>
     </div>
     <div class="stat-card">
         <div class="stat-value">
-            <?php if (!empty($form['is_published'])): ?>
+            <?php if (($form['status'] ?? 'draft') === 'published'): ?>
                 <span class="badge badge-success">Publicado</span>
             <?php else: ?>
-                <span class="badge badge-gray">Rascunho</span>
+                <span class="badge badge-gray"><?= ucfirst(e($form['status'] ?? 'draft')) ?></span>
             <?php endif; ?>
         </div>
         <div class="stat-label">Status</div>
@@ -77,7 +77,7 @@ $errors = $errors ?? [];
                 <textarea name="description" class="form-textarea" rows="3"><?= e($form['description'] ?? '') ?></textarea>
             </div>
 
-            <input type="hidden" name="fields" value="<?= e($form['fields'] ?? '[]') ?>">
+            <!-- Fields are managed via form_fields table, not a JSON column -->
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-primary">Salvar</button>

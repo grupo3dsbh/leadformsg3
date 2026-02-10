@@ -19,20 +19,47 @@ $siteName    = 'LeadForm';
 $pageTitle   = isset($pageTitle) ? htmlspecialchars($pageTitle) . ' - ' . $siteName : $siteName;
 $currentPage = $currentPage ?? '';
 $breadcrumb  = $breadcrumb ?? [];
-$user        = $user ?? [];
+
+// Get user from passed data or auth() helper
+$user        = $user ?? (function_exists('auth') ? auth() : null) ?? [];
 $userName    = htmlspecialchars($user['name'] ?? 'Usuario');
 $userEmail   = htmlspecialchars($user['email'] ?? '');
-$userRole    = htmlspecialchars($user['role'] ?? 'owner');
+$userRole    = htmlspecialchars($user['role'] ?? 'admin');
 $userInitial = mb_strtoupper(mb_substr($user['name'] ?? 'U', 0, 1));
 
-// Plan and usage info
-$plan        = $plan ?? [];
+// Get tenant data
+$tenantData  = $tenant ?? (function_exists('tenant') ? tenant() : null) ?? [];
+
+// Plan and usage info - try from passed data or query directly
+if (empty($plan) && !empty($tenantData['plan_id'])) {
+    try {
+        $db = \Core\Database::getInstance();
+        $pStmt = $db->prepare("SELECT * FROM plans WHERE id = :pid");
+        $pStmt->execute(['pid' => (int) $tenantData['plan_id']]);
+        $plan = $pStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+    } catch (\Throwable $e) {
+        $plan = [];
+    }
+}
+$plan = $plan ?? [];
 $planName    = htmlspecialchars($plan['name'] ?? 'Free');
-$usage       = $usage ?? [];
-$formsUsed   = (int) ($usage['forms_count'] ?? 0);
-$formsLimit  = (int) ($usage['forms_limit'] ?? 5);
-$storageUsed = (float) ($usage['storage_used_mb'] ?? 0);
-$storageLimit = (float) ($usage['storage_limit_mb'] ?? 100);
+
+// Calculate usage
+$formsUsed   = 0;
+$formsLimit  = (int) ($plan['max_forms'] ?? 5);
+$storageUsed = (float) (($tenantData['storage_used'] ?? 0) / 1048576); // bytes to MB
+$storageLimit = (float) (($tenantData['max_storage'] ?? 104857600) / 1048576);
+
+if (!empty($tenantData['id'])) {
+    try {
+        $db = \Core\Database::getInstance();
+        $fcStmt = $db->prepare("SELECT COUNT(*) FROM forms WHERE tenant_id = :tid");
+        $fcStmt->execute(['tid' => (int) $tenantData['id']]);
+        $formsUsed = (int) $fcStmt->fetchColumn();
+    } catch (\Throwable $e) {
+        // ignore
+    }
+}
 
 // Usage percentages
 $formsPercent   = $formsLimit > 0 ? min(100, round(($formsUsed / $formsLimit) * 100)) : 0;

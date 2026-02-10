@@ -41,6 +41,7 @@ class Router
     private array $middlewareAliases = [
         'auth'       => \App\Middleware\AuthMiddleware::class,
         'superadmin' => \App\Middleware\SuperAdminMiddleware::class,
+        'tenant'     => \App\Middleware\TenantMiddleware::class,
         'api'        => \App\Middleware\ApiMiddleware::class,
         'csrf'       => \App\Middleware\CsrfMiddleware::class,
         'guest'      => \App\Middleware\GuestMiddleware::class,

@@ -117,7 +117,7 @@ $router->group('/admin', ['middleware' => 'superadmin'], function ($router) {
 // Client dashboard routes (authenticated)
 // ======================================================================
 
-$router->group('/dashboard', ['middleware' => 'auth'], function ($router) {
+$router->group('/dashboard', ['middleware' => ['auth', 'tenant']], function ($router) {
 
     $router->get('/', 'Client\\DashboardController@index');
 

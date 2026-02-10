@@ -452,8 +452,9 @@ class ClientsController extends Controller
             'return_url' => "/admin/clients/{$id}",
         ];
 
-        // Set the session to the target user
-        $_SESSION['user_id']   = $owner['id'];
+        // Set the session to the target user (both user_id and full user array)
+        $_SESSION['user_id'] = $owner['id'];
+        $_SESSION['user']    = $owner;
         $_SESSION['tenant_id'] = $tenant['id'];
 
         $this->logAudit('client_impersonated', 'tenants', (int) $id, [

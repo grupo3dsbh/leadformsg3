@@ -24,16 +24,12 @@ class DashboardController extends Controller
 
         // --- Aggregate counts ---------------------------------------------------
 
-        $totalForms = (int) $db->prepare(
-            "SELECT COUNT(*) FROM forms WHERE tenant_id = :tid"
-        )->execute(['tid' => $tenantId]) ? 0 : 0;
-
         $stmt = $db->prepare("SELECT COUNT(*) FROM forms WHERE tenant_id = :tid");
         $stmt->execute(['tid' => $tenantId]);
         $totalForms = (int) $stmt->fetchColumn();
 
         $stmt = $db->prepare(
-            "SELECT COUNT(*) FROM forms WHERE tenant_id = :tid AND is_published = 1"
+            "SELECT COUNT(*) FROM forms WHERE tenant_id = :tid AND status = 'published'"
         );
         $stmt->execute(['tid' => $tenantId]);
         $publishedForms = (int) $stmt->fetchColumn();
@@ -86,13 +82,13 @@ class DashboardController extends Controller
         // --- Top forms by entry count (all time) --------------------------------
 
         $stmt = $db->prepare(
-            "SELECT f.id, f.title, f.slug, f.is_published,
+            "SELECT f.id, f.title, f.slug, f.status,
                     COUNT(fe.id) AS entry_count,
                     MAX(fe.created_at) AS last_entry_at
                FROM forms f
                LEFT JOIN entries fe ON fe.form_id = f.id
               WHERE f.tenant_id = :tid
-              GROUP BY f.id, f.title, f.slug, f.is_published
+              GROUP BY f.id, f.title, f.slug, f.status
               ORDER BY entry_count DESC
               LIMIT 10"
         );
@@ -102,12 +98,12 @@ class DashboardController extends Controller
         // --- Conversion rates (views vs. entries) per form ----------------------
 
         $stmt = $db->prepare(
-            "SELECT f.id, f.title, f.views, COUNT(fe.id) AS entries,
-                    CASE WHEN f.views > 0 THEN ROUND((COUNT(fe.id) / f.views) * 100, 2) ELSE 0 END AS conversion_rate
+            "SELECT f.id, f.title, f.views_count, COUNT(fe.id) AS entries,
+                    CASE WHEN f.views_count > 0 THEN ROUND((COUNT(fe.id) / f.views_count) * 100, 2) ELSE 0 END AS conversion_rate
                FROM forms f
                LEFT JOIN entries fe ON fe.form_id = f.id
-              WHERE f.tenant_id = :tid AND f.views > 0
-              GROUP BY f.id, f.title, f.views
+              WHERE f.tenant_id = :tid AND f.views_count > 0
+              GROUP BY f.id, f.title, f.views_count
               ORDER BY conversion_rate DESC
               LIMIT 10"
         );
