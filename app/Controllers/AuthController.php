@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Models\User;
 use App\Models\Tenant;
 use Core\Controller;
+use Core\Response;
 
 /**
  * Authentication Controller
@@ -29,7 +30,7 @@ class AuthController extends Controller
     // LOGIN
     // ==================================================================
 
-    public function loginForm(): string
+    public function loginForm(): string|Response
     {
         if ($this->isAuthenticated()) {
             $this->redirectAuthenticatedUser();
@@ -41,7 +42,7 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    public function login(): string|null
+    public function login(): string|Response|null
     {
         if (!$this->verifyCsrf()) {
             return $this->redirectBack(['error' => 'Token de seguranca invalido. Tente novamente.']);
@@ -106,7 +107,7 @@ class AuthController extends Controller
     // REGISTRATION
     // ==================================================================
 
-    public function registerForm(): string
+    public function registerForm(): string|Response
     {
         if ($this->isAuthenticated()) {
             $this->redirectAuthenticatedUser();
@@ -118,7 +119,7 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    public function register(): string|null
+    public function register(): string|Response|null
     {
         if (!$this->verifyCsrf()) {
             return $this->redirectBack(['error' => 'Token de seguranca invalido.']);
@@ -227,7 +228,7 @@ class AuthController extends Controller
     // LOGOUT
     // ==================================================================
 
-    public function logout(): null
+    public function logout(): Response|null
     {
         $this->destroySession();
         return $this->redirect('/login');
@@ -237,14 +238,14 @@ class AuthController extends Controller
     // PASSWORD RESET
     // ==================================================================
 
-    public function forgotForm(): string
+    public function forgotForm(): string|Response
     {
         return $this->view('auth.forgot', [
             'pageTitle' => 'Esqueci minha Senha',
         ], 'layouts.auth');
     }
 
-    public function forgot(): string|null
+    public function forgot(): string|Response|null
     {
         if (!$this->verifyCsrf()) {
             return $this->redirectBack(['error' => 'Token de seguranca invalido.']);
@@ -270,7 +271,7 @@ class AuthController extends Controller
         return $this->redirect('/forgot-password');
     }
 
-    public function resetForm(): string
+    public function resetForm(): string|Response
     {
         $token = $_GET['token'] ?? '';
         $email = $_GET['email'] ?? '';
@@ -287,7 +288,7 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    public function reset(): string|null
+    public function reset(): string|Response|null
     {
         if (!$this->verifyCsrf()) {
             return $this->redirectBack(['error' => 'Token de seguranca invalido.']);
@@ -338,7 +339,7 @@ class AuthController extends Controller
     // EMAIL VERIFICATION
     // ==================================================================
 
-    public function verifyEmail(): string|null
+    public function verifyEmail(): string|Response|null
     {
         $token  = $_GET['token'] ?? '';
         $userId = (int) ($_GET['id'] ?? 0);
@@ -369,7 +370,7 @@ class AuthController extends Controller
     // TWO-FACTOR AUTHENTICATION
     // ==================================================================
 
-    public function enable2FA(): string
+    public function enable2FA(): string|Response
     {
         $userId = $_SESSION['2fa_user_id'] ?? null;
 
@@ -382,7 +383,7 @@ class AuthController extends Controller
         ], 'layouts.auth');
     }
 
-    public function verify2FA(): string|null
+    public function verify2FA(): string|Response|null
     {
         if (!$this->verifyCsrf()) {
             return $this->redirectBack(['error' => 'Token de seguranca invalido.']);

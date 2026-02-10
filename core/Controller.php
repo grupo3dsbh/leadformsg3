@@ -19,6 +19,18 @@ abstract class Controller
     private static ?string $viewBasePath = null;
 
     // ------------------------------------------------------------------
+    // Database helper
+    // ------------------------------------------------------------------
+
+    /**
+     * Get the Database singleton instance.
+     */
+    protected function db(): Database
+    {
+        return Database::getInstance();
+    }
+
+    // ------------------------------------------------------------------
     // View rendering
     // ------------------------------------------------------------------
 
