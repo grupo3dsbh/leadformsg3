@@ -131,6 +131,7 @@ $router->group('/dashboard', ['middleware' => ['auth', 'tenant']], function ($ro
     $router->delete('/forms/{id}', 'Client\\FormsController@destroy');
     $router->get('/forms/{id}/builder', 'Client\\FormBuilderController@index');
     $router->post('/forms/{id}/builder', 'Client\\FormBuilderController@save');
+    $router->get('/forms/{id}/preview', 'Client\\FormsController@preview');
     $router->get('/forms/{id}/analytics', 'Client\\FormAnalyticsController@index');
 
     // Leads / submissions

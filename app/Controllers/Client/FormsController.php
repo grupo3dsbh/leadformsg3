@@ -367,7 +367,17 @@ class FormsController extends Controller
      */
     public function ajaxSave(): string
     {
-        $formId = $_POST['form_id'] ?? null;
+        // Read from POST or JSON body (JS sends Content-Type: application/json)
+        $input = $_POST;
+        if (empty($input) || empty($input['form_id'])) {
+            $raw = file_get_contents('php://input');
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $input = $decoded;
+            }
+        }
+
+        $formId = $input['form_id'] ?? null;
 
         if (!$formId) {
             return $this->json(['success' => false, 'error' => 'Missing form_id.'], 400);
@@ -379,17 +389,24 @@ class FormsController extends Controller
             return $this->json(['success' => false, 'error' => 'Form not found.'], 404);
         }
 
-        $fields = $_POST['fields'] ?? null;
-        $title = $_POST['title'] ?? null;
+        $fields = $input['fields'] ?? null;
+        $title = $input['title'] ?? null;
 
         $updates = ['updated_at = NOW()'];
         $params = ['id' => (int) $formId, 'tid' => (int) tenant()['id']];
 
         // Save fields to form_fields table
         if ($fields !== null) {
-            $decoded = json_decode($fields, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return $this->json(['success' => false, 'error' => 'Invalid fields JSON.'], 400);
+            // Fields can be an array (from JSON body) or a JSON string (from form POST)
+            if (is_string($fields)) {
+                $fieldsArray = json_decode($fields, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    return $this->json(['success' => false, 'error' => 'Invalid fields JSON.'], 400);
+                }
+            } elseif (is_array($fields)) {
+                $fieldsArray = $fields;
+            } else {
+                return $this->json(['success' => false, 'error' => 'Invalid fields format.'], 400);
             }
 
             $db = $this->db();
@@ -400,7 +417,7 @@ class FormsController extends Controller
                 "INSERT INTO form_fields (form_id, type, label, placeholder, required, settings, sort_order, created_at, updated_at)
                  VALUES (:fid, :type, :label, :placeholder, :required, :settings, :sort, NOW(), NOW())"
             );
-            foreach ($decoded as $field) {
+            foreach ($fieldsArray as $field) {
                 $fieldStmt->execute([
                     'fid'         => (int) $formId,
                     'type'        => $field['type'] ?? 'text',
@@ -418,9 +435,10 @@ class FormsController extends Controller
             $params['title'] = trim($title);
         }
 
-        if (!empty($_POST['settings'])) {
+        $settingsInput = $input['settings'] ?? null;
+        if (!empty($settingsInput)) {
             $updates[] = 'settings = :settings';
-            $params['settings'] = $_POST['settings'];
+            $params['settings'] = is_string($settingsInput) ? $settingsInput : json_encode($settingsInput);
         }
 
         $sql = "UPDATE forms SET " . implode(', ', $updates) . " WHERE id = :id AND tenant_id = :tid";

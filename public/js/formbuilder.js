@@ -79,9 +79,9 @@ class LeadFormBuilder {
 
     _init() {
         this._renderPalette();
+        this._setupCanvasDropZone();
         this._renderCanvas();
         this._renderSettings();
-        this._setupDragDrop();
         this._setupAutoSave();
         this._setupKeyboardShortcuts();
         this._updateFieldCount();
@@ -164,24 +164,10 @@ class LeadFormBuilder {
     // CANVAS (Center)
     // ==========================================
 
-    _renderCanvas() {
+    _setupCanvasDropZone() {
         const canvas = document.getElementById(this.options.canvasId);
         if (!canvas) return;
 
-        if (this.fields.length === 0) {
-            canvas.innerHTML = `
-                <div class="canvas-empty" id="canvas-empty">
-                    <div class="canvas-empty-icon">&#128466;</div>
-                    <h3>Arraste os blocos aqui para começar</h3>
-                    <p>Escolha os campos na barra lateral e arraste para esta área</p>
-                </div>
-            `;
-        } else {
-            canvas.innerHTML = `<div class="canvas-fields" id="canvas-fields"></div>`;
-            this._renderCanvasFields();
-        }
-
-        // Drop zone
         canvas.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
@@ -200,6 +186,24 @@ class LeadFormBuilder {
                 this.addField(type);
             }
         });
+    }
+
+    _renderCanvas() {
+        const canvas = document.getElementById(this.options.canvasId);
+        if (!canvas) return;
+
+        if (this.fields.length === 0) {
+            canvas.innerHTML = `
+                <div class="canvas-empty" id="canvas-empty">
+                    <div class="canvas-empty-icon">&#128466;</div>
+                    <h3>Arraste os blocos aqui para começar</h3>
+                    <p>Escolha os campos na barra lateral e arraste para esta área</p>
+                </div>
+            `;
+        } else {
+            canvas.innerHTML = `<div class="canvas-fields" id="canvas-fields"></div>`;
+            this._renderCanvasFields();
+        }
     }
 
     _renderCanvasFields() {
@@ -1020,10 +1024,6 @@ class LeadFormBuilder {
     // ==========================================
     // UTILITIES
     // ==========================================
-
-    _setupDragDrop() {
-        // Setup done in palette and canvas rendering
-    }
 
     _setupAutoSave() {
         setInterval(() => {
