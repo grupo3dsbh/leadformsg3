@@ -441,15 +441,28 @@ class FormsController extends Controller
             $params['settings'] = is_string($settingsInput) ? $settingsInput : json_encode($settingsInput);
         }
 
-        // Handle publish flag: set status to 'published'
+        // Handle publish flag
         if (!empty($input['publish'])) {
             $updates[] = "status = 'published'";
+        }
+
+        // Handle explicit status change (publish/unpublish toggle)
+        if (!empty($input['set_status'])) {
+            $allowed = ['draft', 'published', 'archived'];
+            $newStatus = $input['set_status'];
+            if (in_array($newStatus, $allowed)) {
+                $updates[] = "status = :status";
+                $params['status'] = $newStatus;
+            }
         }
 
         $sql = "UPDATE forms SET " . implode(', ', $updates) . " WHERE id = :id AND tenant_id = :tid";
         $this->db()->prepare($sql)->execute($params);
 
-        $message = !empty($input['publish']) ? 'Formulario publicado!' : 'Formulario salvo.';
+        $message = 'Formulario salvo.';
+        if (!empty($input['publish'])) $message = 'Formulario publicado!';
+        if (!empty($input['set_status'])) $message = ($input['set_status'] === 'published') ? 'Formulario publicado!' : 'Formulario despublicado.';
+
         return $this->json(['success' => true, 'message' => $message]);
     }
 

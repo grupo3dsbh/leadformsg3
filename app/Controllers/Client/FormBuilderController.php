@@ -19,13 +19,15 @@ class FormBuilderController extends Controller
         }
 
         $fields = $this->getFormFields((int) $id);
-        $settings = json_decode($form['settings'] ?? '{}', true) ?: [];
 
+        // Decode settings JSON into array for PHP template access
+        $form['settings'] = json_decode($form['settings'] ?? '{}', true) ?: [];
+
+        // Builder is a standalone page - NO layout wrapper
         return $this->view('client/forms/builder', [
             'form'     => $form,
             'fields'   => $fields,
-            'settings' => $settings,
-        ], 'layouts.client');
+        ]);
     }
 
     public function save(string $id): string

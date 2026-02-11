@@ -1,16 +1,19 @@
 /**
  * LeadForm SaaS - Form Builder Styles
- * Conversational-style builder inspired by Typeform/QuillForms
+ * Conversational-style builder
  */
 
 /* ============================================
-   BUILDER LAYOUT
+   BUILDER BODY - standalone page, no sidebar
    ============================================ */
-.builder-layout {
-    display: flex;
-    height: calc(100vh - 56px);
+.builder-body {
+    margin: 0;
+    padding: 0;
     overflow: hidden;
-    background: var(--gray-100);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* ============================================
@@ -18,14 +21,13 @@
    ============================================ */
 .builder-toolbar {
     height: 56px;
+    min-height: 56px;
     background: #fff;
     border-bottom: 1px solid var(--gray-200);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    position: sticky;
-    top: 0;
     z-index: 100;
     flex-shrink: 0;
 }
@@ -65,7 +67,8 @@
     padding: 6px 10px;
     border-radius: var(--radius-md);
     color: var(--gray-900);
-    min-width: 200px;
+    min-width: 160px;
+    max-width: 240px;
 }
 
 .builder-toolbar-name:focus {
@@ -102,19 +105,33 @@
 }
 
 /* ============================================
-   PALETTE (Left Panel)
+   BUILDER LAYOUT - 3 panels filling viewport
+   ============================================ */
+.builder-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--gray-100);
+}
+
+/* ============================================
+   PALETTE (Left Panel - add blocks)
    ============================================ */
 .builder-palette {
-    width: 260px;
+    width: 240px;
+    min-width: 240px;
     background: #fff;
     border-right: 1px solid var(--gray-200);
-    overflow-y: auto;
-    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .palette-search {
     padding: 12px;
     border-bottom: 1px solid var(--gray-100);
+    flex-shrink: 0;
 }
 
 .palette-search input {
@@ -128,6 +145,11 @@
 
 .palette-search input:focus {
     border-color: var(--primary);
+}
+
+.builder-palette .palette-scroll {
+    flex: 1;
+    overflow-y: auto;
 }
 
 .palette-category {
@@ -162,14 +184,10 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px;
-    transition: max-height 0.3s ease, opacity 0.3s ease;
 }
 
 .palette-items.collapsed {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    padding: 0 8px;
+    display: none;
 }
 
 .palette-item {
@@ -214,47 +232,44 @@
 }
 
 /* ============================================
-   CANVAS (Center) - Conversational style
+   CANVAS (Center) - compact conversational cards
    ============================================ */
 .builder-canvas {
     flex: 1;
+    min-width: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 0;
+    padding: 20px;
 }
 
 .canvas-fields {
-    max-width: 640px;
+    max-width: 580px;
     width: 100%;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    min-height: 200px;
-    padding-bottom: 100px;
+    gap: 4px;
+    padding-bottom: 120px;
 }
 
-/* Conversational card style - clean, compact */
+/* Conversational card style */
 .canvas-field {
     background: #fff;
     border: 2px solid transparent;
-    border-radius: 12px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.12s ease;
     display: flex;
     align-items: center;
-    padding: 12px 16px;
-    gap: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    min-height: 48px;
+    padding: 10px 14px;
+    gap: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    min-height: 44px;
 }
 
 .canvas-field:hover {
     border-color: var(--gray-200);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
 
 .canvas-field.selected {
@@ -286,7 +301,7 @@
 .canvas-field-icon {
     font-size: 18px;
     flex-shrink: 0;
-    width: 24px;
+    width: 22px;
     text-align: center;
 }
 
@@ -295,7 +310,7 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .canvas-field-label {
@@ -315,39 +330,21 @@
 }
 
 .canvas-field-logic-badge {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--warning);
     flex-shrink: 0;
 }
 
 .canvas-field-actions {
-    margin-left: auto;
     display: flex;
     gap: 2px;
     opacity: 0;
-    transition: opacity 0.15s ease;
+    transition: opacity 0.12s ease;
     flex-shrink: 0;
 }
 
 .canvas-field:hover .canvas-field-actions {
     opacity: 1;
-}
-
-/* Hide body/header in conversational mode - simplified view */
-.canvas-field-header {
-    display: none;
-}
-
-.canvas-field-body {
-    display: none;
-}
-
-.canvas-field-description {
-    display: none;
-}
-
-.canvas-field-message {
-    display: none;
 }
 
 /* Empty state */
@@ -377,21 +374,16 @@
     background: var(--primary-50) !important;
 }
 
-.canvas-dragover .canvas-empty {
-    border: 2px dashed var(--primary-300);
-    border-radius: var(--radius-xl);
-    background: rgba(79, 70, 229, 0.05);
-}
-
 /* ============================================
    SETTINGS PANEL (Right)
    ============================================ */
 .builder-settings {
     width: 320px;
+    min-width: 320px;
     background: #fff;
     border-left: 1px solid var(--gray-200);
     overflow-y: auto;
-    flex-shrink: 0;
+    overflow-x: hidden;
 }
 
 .settings-empty {
@@ -455,45 +447,67 @@
 .settings-body .form-textarea {
     font-size: 13px;
     padding: 7px 10px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-/* Options editor - FIX shrinking bug */
+/* ============================================
+   OPTIONS EDITOR - FIX SHRINKING BUG
+   The key fix: the container scrolls, items don't shrink
+   ============================================ */
 .options-editor {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 300px;
+    max-height: 240px;
     overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
 }
 
 .option-item {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
+    flex: 0 0 auto; /* NEVER shrink */
     min-height: 36px;
 }
 
-.option-item .form-input,
-.option-item .option-label-input {
-    flex: 1;
+.option-item input[type="text"] {
+    flex: 1 1 auto;
     min-width: 0;
     width: 100%;
     font-size: 13px;
     padding: 7px 10px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    outline: none;
+    box-sizing: border-box;
+}
+
+.option-item input[type="text"]:focus {
+    border-color: var(--primary);
 }
 
 .option-drag {
     cursor: grab;
     color: var(--gray-400);
     font-size: 12px;
-    flex-shrink: 0;
+    flex: 0 0 auto;
 }
 
 .option-remove {
     padding: 2px 6px;
     font-size: 14px;
-    flex-shrink: 0;
+    flex: 0 0 auto;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--gray-400);
+}
+
+.option-remove:hover {
+    color: var(--danger);
 }
 
 /* Logic rules */
@@ -516,13 +530,13 @@
 }
 
 /* ============================================
-   FLOW BUILDER / JUMP LOGIC
+   FLOW BUILDER / JUMP LOGIC PANEL
    ============================================ */
 .flow-panel {
     position: fixed;
     top: 56px;
     right: 0;
-    width: 420px;
+    width: 400px;
     height: calc(100vh - 56px);
     background: #fff;
     border-left: 1px solid var(--gray-200);
@@ -602,55 +616,20 @@
     margin-bottom: 6px;
 }
 
-.jump-condition-row {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    margin-bottom: 4px;
-}
-
-.jump-condition-row select,
-.jump-condition-row input {
-    flex: 1;
-    min-width: 0;
-    font-size: 12px;
-    padding: 5px 6px;
-}
-
-.jump-logic-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    background: var(--warning-light);
-    color: var(--warning);
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.jump-connector {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 0;
-    color: var(--gray-400);
-    font-size: 11px;
-    font-weight: 600;
-}
-
 /* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 1200px) {
     .builder-settings {
         width: 280px;
+        min-width: 280px;
     }
 }
 
 @media (max-width: 1024px) {
     .builder-palette {
         width: 200px;
+        min-width: 200px;
     }
 
     .palette-items {
@@ -665,7 +644,8 @@
 
     .builder-palette,
     .builder-settings {
-        width: 100%;
-        max-height: 40vh;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-height: 35vh;
     }
 }

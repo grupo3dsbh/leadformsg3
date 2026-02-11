@@ -85,6 +85,12 @@ class LeadFormBuilder {
         this._setupAutoSave();
         this._setupKeyboardShortcuts();
         this._updateFieldCount();
+
+        // Track title changes
+        const titleEl = document.getElementById('form-title');
+        if (titleEl) {
+            titleEl.addEventListener('input', () => this._markDirty());
+        }
     }
 
     // ==========================================
@@ -96,6 +102,7 @@ class LeadFormBuilder {
         if (!palette) return;
 
         let html = '<div class="palette-search"><input type="text" id="palette-search" placeholder="Buscar bloco..." class="form-input"></div>';
+        html += '<div class="palette-scroll">';
 
         Object.entries(this.categories).forEach(([catKey, cat]) => {
             const fields = Object.entries(this.fieldTypes).filter(([, f]) => f.category === catKey);
@@ -117,6 +124,8 @@ class LeadFormBuilder {
                 </div>
             `;
         });
+
+        html += '</div>'; // close palette-scroll
 
         palette.innerHTML = html;
 
@@ -1100,8 +1109,10 @@ class LeadFormBuilder {
             saveBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span> Salvando...';
         }
 
+        const titleEl = document.getElementById('form-title');
         const payload = {
             form_id: this.options.formId,
+            title: titleEl ? titleEl.value : '',
             fields: this.fields,
             settings: this.options.formSettings,
             _token: this.options.csrfToken
