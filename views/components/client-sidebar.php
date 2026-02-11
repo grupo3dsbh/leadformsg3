@@ -1,115 +1,91 @@
 <?php
 /**
- * LeadForm SaaS - Client Sidebar Component
+ * LeadForm SaaS - Client Sidebar Component (Collapsible)
  *
- * Reusable sidebar navigation for the client (tenant) admin panel.
- * Edit this file to add/remove/reorder client menu items.
- *
- * Variables expected (from parent layout):
- *   $currentPage    - Active sidebar item identifier
- *   $userInitial    - User initial letter for avatar
- *   $userName       - User display name
- *   $userRole       - User role (owner, admin, member)
- *   $planName       - Current plan name
- *   $formsUsed      - Number of forms used
- *   $formsLimit     - Max forms allowed
- *   $formsPercent   - Forms usage percentage
- *   $storageUsed    - Storage used in MB
- *   $storageLimit   - Storage limit in MB
- *   $storagePercent - Storage usage percentage
+ * Collapsible sidebar: collapsed by default showing only icons.
+ * On hover, expands to show labels. Pin button to keep expanded.
+ * Preference saved per user via localStorage.
  */
 ?>
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar sidebar-collapsed" id="sidebar">
     <!-- Sidebar Header / Logo -->
     <div class="sidebar-header">
         <div class="sidebar-logo">LF</div>
-        <div class="sidebar-brand">Lead<span>Form</span></div>
+        <div class="sidebar-text sidebar-brand">Lead<span>Form</span></div>
+        <button class="sidebar-pin-btn sidebar-text" id="sidebarPinBtn" title="Fixar menu">
+            <span class="pin-icon">&#128204;</span>
+        </button>
     </div>
 
     <!-- Navigation -->
     <nav class="sidebar-nav">
         <!-- FORMULARIOS -->
         <div class="sidebar-section">
-            <div class="sidebar-section-title">Formularios</div>
+            <div class="sidebar-section-title sidebar-text">Formularios</div>
 
-            <a href="/dashboard" class="sidebar-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
+            <a href="/dashboard" class="sidebar-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>" data-tooltip="Dashboard">
                 <span class="icon">&#9634;</span>
-                <span>Dashboard</span>
+                <span class="sidebar-text">Dashboard</span>
             </a>
-            <a href="/dashboard/forms" class="sidebar-link <?= $currentPage === 'forms' ? 'active' : '' ?>">
+            <a href="/dashboard/forms" class="sidebar-link <?= $currentPage === 'forms' ? 'active' : '' ?>" data-tooltip="Meus Formularios">
                 <span class="icon">&#9776;</span>
-                <span>Meus Formularios</span>
+                <span class="sidebar-text">Meus Formularios</span>
             </a>
-            <a href="/dashboard/leads" class="sidebar-link <?= $currentPage === 'leads' ? 'active' : '' ?>">
+            <a href="/dashboard/leads" class="sidebar-link <?= $currentPage === 'leads' ? 'active' : '' ?>" data-tooltip="Leads">
                 <span class="icon">&#9993;</span>
-                <span>Leads</span>
+                <span class="sidebar-text">Leads</span>
             </a>
-        </div>
-
-        <!-- EQUIPE -->
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">Equipe</div>
-
-            <!-- Users/Permissions routes not yet implemented -->
-            <!--
-            <a href="/dashboard/users" class="sidebar-link <?= $currentPage === 'users' ? 'active' : '' ?>">
-                <span class="icon">&#9787;</span>
-                <span>Usuarios</span>
-            </a>
-            -->
         </div>
 
         <!-- INTEGRACOES -->
         <div class="sidebar-section">
-            <div class="sidebar-section-title">Integracoes</div>
+            <div class="sidebar-section-title sidebar-text">Integracoes</div>
 
-            <a href="/dashboard/integrations" class="sidebar-link <?= $currentPage === 'integrations' ? 'active' : '' ?>">
+            <a href="/dashboard/integrations" class="sidebar-link <?= $currentPage === 'integrations' ? 'active' : '' ?>" data-tooltip="Integracoes">
                 <span class="icon">&#128268;</span>
-                <span>Integracoes</span>
+                <span class="sidebar-text">Integracoes</span>
             </a>
-            <a href="/dashboard/webhooks" class="sidebar-link <?= $currentPage === 'webhooks' ? 'active' : '' ?>">
+            <a href="/dashboard/webhooks" class="sidebar-link <?= $currentPage === 'webhooks' ? 'active' : '' ?>" data-tooltip="Webhooks">
                 <span class="icon">&#128279;</span>
-                <span>Webhooks</span>
+                <span class="sidebar-text">Webhooks</span>
             </a>
-            <a href="/dashboard/pixels" class="sidebar-link <?= $currentPage === 'pixels' ? 'active' : '' ?>">
+            <a href="/dashboard/pixels" class="sidebar-link <?= $currentPage === 'pixels' ? 'active' : '' ?>" data-tooltip="Pixels & Tags">
                 <span class="icon">&#127919;</span>
-                <span>Pixels &amp; Tags</span>
+                <span class="sidebar-text">Pixels &amp; Tags</span>
             </a>
         </div>
 
         <!-- CONFIGURACOES -->
         <div class="sidebar-section">
-            <div class="sidebar-section-title">Configuracoes</div>
+            <div class="sidebar-section-title sidebar-text">Configuracoes</div>
 
-            <a href="/dashboard/profile" class="sidebar-link <?= $currentPage === 'profile' ? 'active' : '' ?>">
+            <a href="/dashboard/profile" class="sidebar-link <?= $currentPage === 'profile' ? 'active' : '' ?>" data-tooltip="Perfil">
                 <span class="icon">&#9787;</span>
-                <span>Perfil</span>
+                <span class="sidebar-text">Perfil</span>
             </a>
-            <a href="/dashboard/security" class="sidebar-link <?= $currentPage === 'security' ? 'active' : '' ?>">
+            <a href="/dashboard/security" class="sidebar-link <?= $currentPage === 'security' ? 'active' : '' ?>" data-tooltip="Seguranca">
                 <span class="icon">&#128737;</span>
-                <span>Seguranca</span>
+                <span class="sidebar-text">Seguranca</span>
             </a>
-            <a href="/dashboard/api-keys" class="sidebar-link <?= $currentPage === 'api-keys' ? 'active' : '' ?>">
+            <a href="/dashboard/api-keys" class="sidebar-link <?= $currentPage === 'api-keys' ? 'active' : '' ?>" data-tooltip="API & Tokens">
                 <span class="icon">&#128273;</span>
-                <span>API &amp; Tokens</span>
+                <span class="sidebar-text">API &amp; Tokens</span>
             </a>
-            <a href="/dashboard/ai-settings" class="sidebar-link <?= $currentPage === 'ai-settings' ? 'active' : '' ?>">
+            <a href="/dashboard/ai-settings" class="sidebar-link <?= $currentPage === 'ai-settings' ? 'active' : '' ?>" data-tooltip="IA">
                 <span class="icon">&#129302;</span>
-                <span>IA</span>
-                <span class="badge badge-primary" style="font-size:9px; padding:1px 6px;">Novo</span>
+                <span class="sidebar-text">IA</span>
+                <span class="badge badge-primary sidebar-text" style="font-size:9px; padding:1px 6px;">Novo</span>
             </a>
         </div>
     </nav>
 
-    <!-- Plan Usage Indicator -->
+    <!-- Plan Usage Indicator (only when expanded) -->
     <div class="sidebar-footer">
-        <div style="margin-bottom: var(--space-4);">
+        <div class="sidebar-text" style="margin-bottom: var(--space-4);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--space-2);">
                 <span style="font-size:11px; color:rgba(255,255,255,0.5); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Plano <?= $planName ?></span>
                 <a href="/dashboard/billing" style="font-size:11px; color:var(--primary-light); text-decoration:none;">Upgrade</a>
             </div>
-
-            <!-- Forms usage -->
             <div style="margin-bottom: var(--space-3);">
                 <div style="display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,0.4); margin-bottom:4px;">
                     <span>Formularios</span>
@@ -119,8 +95,6 @@
                     <div style="height:100%; width:<?= $formsPercent ?>%; background:<?= $formsPercent >= 90 ? 'var(--danger)' : ($formsPercent >= 70 ? 'var(--warning)' : 'var(--primary-light)') ?>; border-radius:2px; transition:width 0.3s ease;"></div>
                 </div>
             </div>
-
-            <!-- Storage usage -->
             <div>
                 <div style="display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,0.4); margin-bottom:4px;">
                     <span>Armazenamento</span>
@@ -135,7 +109,7 @@
         <!-- User Info -->
         <div class="sidebar-user" style="border-top:1px solid rgba(255,255,255,0.08); padding-top: var(--space-4);">
             <div class="avatar-initials avatar-sm"><?= $userInitial ?></div>
-            <div class="sidebar-user-info">
+            <div class="sidebar-user-info sidebar-text">
                 <div class="sidebar-user-name"><?= $userName ?></div>
                 <div class="sidebar-user-role"><?= ucfirst($userRole) ?></div>
             </div>

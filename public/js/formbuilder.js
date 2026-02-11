@@ -210,35 +210,27 @@ class LeadFormBuilder {
         const container = document.getElementById('canvas-fields');
         if (!container) return;
 
+        // Conversational card style: drag handle | icon | label + required star | actions
         container.innerHTML = this.fields.map((field, index) => {
             const typeDef = this.fieldTypes[field.type] || {};
             const isSelected = index === this.selectedFieldIndex;
 
             return `
-                <div class="canvas-field ${isSelected ? 'selected' : ''} ${field.settings?.conditional_logic ? 'has-logic' : ''}"
+                <div class="canvas-field ${isSelected ? 'selected' : ''}"
                      data-index="${index}" data-field-id="${field.id}"
                      onclick="builder.selectField(${index})">
-                    <div class="canvas-field-header">
-                        <div class="canvas-field-drag" title="Arrastar para reordenar">&#9776;</div>
-                        <span class="canvas-field-icon">${typeDef.icon || '&#9881;'}</span>
-                        <span class="canvas-field-type">${typeDef.label || field.type}</span>
+                    <div class="canvas-field-drag" title="Arrastar para reordenar">&#9776;</div>
+                    <span class="canvas-field-icon">${typeDef.icon || '&#9881;'}</span>
+                    <div class="canvas-field-info">
+                        <span class="canvas-field-label">${this._escapeHtml(field.label || 'Sem titulo')}</span>
                         ${field.required ? '<span class="canvas-field-required">*</span>' : ''}
-                        ${field.settings?.conditional_logic ? '<span class="canvas-field-logic-badge" title="Tem lógica condicional">&#9889;</span>' : ''}
-                        <div class="canvas-field-actions">
-                            <button class="btn-icon btn-sm btn-ghost" onclick="event.stopPropagation();builder.duplicateField(${index})" title="Duplicar">&#128203;</button>
-                            <button class="btn-icon btn-sm btn-ghost" onclick="event.stopPropagation();builder.removeField(${index})" title="Remover">&#128465;</button>
-                        </div>
+                        ${field.settings?.conditional_logic ? '<span class="canvas-field-logic-badge" title="Tem logica condicional">&#9889;</span>' : ''}
                     </div>
-                    <div class="canvas-field-body">
-                        <div class="canvas-field-label">${this._escapeHtml(field.label || 'Sem título')}</div>
-                        ${field.description ? `<div class="canvas-field-description">${this._escapeHtml(field.description)}</div>` : ''}
-                        <div class="canvas-field-preview">${this._getFieldPreview(field)}</div>
+                    <div class="canvas-field-actions">
+                        <button class="btn-icon btn-sm btn-ghost" onclick="event.stopPropagation();builder.openJumpLogic(${index})" title="Logica de salto">&#9889;</button>
+                        <button class="btn-icon btn-sm btn-ghost" onclick="event.stopPropagation();builder.duplicateField(${index})" title="Duplicar">&#128203;</button>
+                        <button class="btn-icon btn-sm btn-ghost" onclick="event.stopPropagation();builder.removeField(${index})" title="Remover">&#128465;</button>
                     </div>
-                    ${field.message ? `
-                        <div class="canvas-field-message">
-                            <small>&#128172; ${this._escapeHtml(typeof field.message === 'string' ? field.message.substring(0, 80) : 'Mensagem dinâmica')}${typeof field.message === 'string' && field.message.length > 80 ? '...' : ''}</small>
-                        </div>
-                    ` : ''}
                 </div>
             `;
         }).join('');
@@ -813,6 +805,197 @@ class LeadFormBuilder {
     }
 
     // ==========================================
+    // JUMP LOGIC / FLOW BUILDER
+    // ==========================================
+
+    openJumpLogic(fieldIndex) {
+        if (fieldIndex < 0 || fieldIndex >= this.fields.length) return;
+
+        const field = this.fields[fieldIndex];
+        this.selectedFieldIndex = fieldIndex;
+
+        // Create or open the flow panel
+        let panel = document.getElementById('flow-panel');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'flow-panel';
+            panel.className = 'flow-panel';
+            document.body.appendChild(panel);
+        }
+
+        const jumpRules = field.settings?.jump_logic || [];
+
+        panel.innerHTML = `
+            <div class="flow-panel-header">
+                <h3>&#9889; Logica de Salto</h3>
+                <button class="btn btn-sm btn-ghost" onclick="builder.closeJumpLogic()">&times;</button>
+            </div>
+            <div class="flow-panel-body">
+                <div style="margin-bottom:12px;padding:8px 12px;background:var(--primary-50);border-radius:8px;font-size:13px;color:var(--primary);">
+                    Campo: <strong>${this._escapeHtml(field.label || field.id)}</strong>
+                </div>
+                <p style="font-size:12px;color:var(--gray-500);margin-bottom:16px;">
+                    Configure para qual campo o formulario deve pular, baseado na resposta do usuario.
+                </p>
+
+                <div id="jump-rules-list">
+                    ${jumpRules.map((rule, idx) => this._renderJumpRule(rule, idx)).join('')}
+                </div>
+
+                <button class="btn btn-sm btn-outline" style="width:100%;margin-top:8px;" onclick="builder.addJumpRule()">
+                    + Adicionar regra de salto
+                </button>
+
+                <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);">
+                    <div class="form-group">
+                        <label class="form-label">Salto padrao (sem condicao)</label>
+                        <select class="form-select" id="jump-default-target" onchange="builder.updateJumpDefault(this.value)">
+                            <option value="">Proximo campo (padrao)</option>
+                            ${this.fields.filter((f, i) => i > fieldIndex).map((f, i) => `
+                                <option value="${f.id}" ${field.settings?.jump_logic_default === f.id ? 'selected' : ''}>
+                                    ${fieldIndex + i + 2}. ${this._escapeHtml(f.label || f.id)}
+                                </option>
+                            `).join('')}
+                            <option value="_end" ${field.settings?.jump_logic_default === '_end' ? 'selected' : ''}>Finalizar formulario</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        panel.classList.add('open');
+        this._renderCanvasFields();
+        this._renderSettings();
+    }
+
+    closeJumpLogic() {
+        const panel = document.getElementById('flow-panel');
+        if (panel) panel.classList.remove('open');
+    }
+
+    _renderJumpRule(rule, idx) {
+        const currentFieldIndex = this.selectedFieldIndex;
+        const field = this.fields[currentFieldIndex];
+        const hasOptions = ['radio', 'select', 'checkbox'].includes(field.type);
+        const options = field.options || field.settings?.options || [];
+
+        return `
+            <div class="jump-rule" data-rule-index="${idx}">
+                <div class="jump-rule-header">
+                    <span>Regra ${idx + 1}</span>
+                    <button class="btn btn-sm btn-ghost" onclick="builder.removeJumpRule(${idx})" style="color:var(--danger);">&#10005;</button>
+                </div>
+
+                <div class="jump-condition">
+                    <div class="form-group">
+                        <label class="form-label">Se a resposta</label>
+                        <select class="form-select" onchange="builder.updateJumpRuleOperator(${idx}, this.value)">
+                            <option value="equals" ${rule.operator === 'equals' ? 'selected' : ''}>E igual a</option>
+                            <option value="not_equals" ${rule.operator === 'not_equals' ? 'selected' : ''}>E diferente de</option>
+                            <option value="contains" ${rule.operator === 'contains' ? 'selected' : ''}>Contem</option>
+                            <option value="is_set" ${rule.operator === 'is_set' ? 'selected' : ''}>Foi preenchida</option>
+                            <option value="not_set" ${rule.operator === 'not_set' ? 'selected' : ''}>Nao foi preenchida</option>
+                        </select>
+                    </div>
+
+                    ${rule.operator !== 'is_set' && rule.operator !== 'not_set' ? `
+                        <div class="form-group">
+                            <label class="form-label">Valor</label>
+                            ${hasOptions ? `
+                                <select class="form-select" onchange="builder.updateJumpRuleValue(${idx}, this.value)">
+                                    <option value="">Selecione...</option>
+                                    ${options.map(opt => {
+                                        const val = typeof opt === 'string' ? opt : opt.label;
+                                        return `<option value="${this._escapeHtml(val)}" ${rule.value === val ? 'selected' : ''}>${this._escapeHtml(val)}</option>`;
+                                    }).join('')}
+                                </select>
+                            ` : `
+                                <input type="text" class="form-input" value="${this._escapeHtml(rule.value || '')}"
+                                       onchange="builder.updateJumpRuleValue(${idx}, this.value)" placeholder="Valor esperado">
+                            `}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="form-group" style="margin-top:8px;">
+                    <label class="form-label">Entao pular para</label>
+                    <select class="form-select" onchange="builder.updateJumpRuleTarget(${idx}, this.value)">
+                        <option value="">Selecione...</option>
+                        ${this.fields.filter((f, i) => i !== currentFieldIndex).map((f, i) => `
+                            <option value="${f.id}" ${rule.target === f.id ? 'selected' : ''}>
+                                ${this._escapeHtml(f.label || f.id)}
+                            </option>
+                        `).join('')}
+                        <option value="_end" ${rule.target === '_end' ? 'selected' : ''}>Finalizar formulario</option>
+                    </select>
+                </div>
+            </div>
+        `;
+    }
+
+    addJumpRule() {
+        if (this.selectedFieldIndex < 0) return;
+        const field = this.fields[this.selectedFieldIndex];
+        if (!field.settings) field.settings = {};
+        if (!field.settings.jump_logic) field.settings.jump_logic = [];
+
+        field.settings.jump_logic.push({
+            operator: 'equals',
+            value: '',
+            target: ''
+        });
+
+        this._markDirty();
+        this.openJumpLogic(this.selectedFieldIndex);
+    }
+
+    removeJumpRule(idx) {
+        if (this.selectedFieldIndex < 0) return;
+        const field = this.fields[this.selectedFieldIndex];
+        if (field.settings?.jump_logic) {
+            field.settings.jump_logic.splice(idx, 1);
+        }
+        this._markDirty();
+        this.openJumpLogic(this.selectedFieldIndex);
+    }
+
+    updateJumpRuleOperator(idx, value) {
+        if (this.selectedFieldIndex < 0) return;
+        const field = this.fields[this.selectedFieldIndex];
+        if (field.settings?.jump_logic?.[idx]) {
+            field.settings.jump_logic[idx].operator = value;
+            this._markDirty();
+            this.openJumpLogic(this.selectedFieldIndex);
+        }
+    }
+
+    updateJumpRuleValue(idx, value) {
+        if (this.selectedFieldIndex < 0) return;
+        const field = this.fields[this.selectedFieldIndex];
+        if (field.settings?.jump_logic?.[idx]) {
+            field.settings.jump_logic[idx].value = value;
+            this._markDirty();
+        }
+    }
+
+    updateJumpRuleTarget(idx, value) {
+        if (this.selectedFieldIndex < 0) return;
+        const field = this.fields[this.selectedFieldIndex];
+        if (field.settings?.jump_logic?.[idx]) {
+            field.settings.jump_logic[idx].target = value;
+            this._markDirty();
+        }
+    }
+
+    updateJumpDefault(value) {
+        if (this.selectedFieldIndex < 0) return;
+        const field = this.fields[this.selectedFieldIndex];
+        if (!field.settings) field.settings = {};
+        field.settings.jump_logic_default = value || null;
+        this._markDirty();
+    }
+
+    // ==========================================
     // SETTINGS BINDING
     // ==========================================
 
@@ -966,19 +1149,29 @@ class LeadFormBuilder {
         await this.save();
 
         try {
-            const response = await fetch(`/dashboard/forms/${this.options.formId}/publish`, {
+            const response = await fetch(this.options.saveUrl, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': this.options.csrfToken,
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                body: JSON.stringify({
+                    form_id: this.options.formId,
+                    publish: true,
+                    _token: this.options.csrfToken
+                })
             });
 
-            if (response.ok) {
-                this._showToast('Formulário publicado!');
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                this._showToast('Formulario publicado com sucesso!');
+            } else {
+                throw new Error(result.error || 'Erro ao publicar');
             }
         } catch (error) {
-            this._showToast('Erro ao publicar', 'error');
+            this._showToast(error.message || 'Erro ao publicar', 'error');
         }
     }
 

@@ -441,10 +441,16 @@ class FormsController extends Controller
             $params['settings'] = is_string($settingsInput) ? $settingsInput : json_encode($settingsInput);
         }
 
+        // Handle publish flag: set status to 'published'
+        if (!empty($input['publish'])) {
+            $updates[] = "status = 'published'";
+        }
+
         $sql = "UPDATE forms SET " . implode(', ', $updates) . " WHERE id = :id AND tenant_id = :tid";
         $this->db()->prepare($sql)->execute($params);
 
-        return $this->json(['success' => true, 'message' => 'Form saved.']);
+        $message = !empty($input['publish']) ? 'Formulario publicado!' : 'Formulario salvo.';
+        return $this->json(['success' => true, 'message' => $message]);
     }
 
     /**

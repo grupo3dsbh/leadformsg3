@@ -196,35 +196,66 @@ $storagePercent = $storageLimit > 0 ? min(100, round(($storageUsed / $storageLim
          ============================================ -->
     <script>
     (function() {
-        // Sidebar toggle (mobile)
         var sidebar = document.getElementById('sidebar');
         var sidebarToggle = document.getElementById('sidebarToggle');
         var sidebarOverlay = document.getElementById('sidebarOverlay');
+        var sidebarPinBtn = document.getElementById('sidebarPinBtn');
+        var adminLayout = document.querySelector('.admin-layout');
+
+        // Restore sidebar pin state from localStorage
+        var sidebarPinned = localStorage.getItem('leadform_sidebar_pinned') === 'true';
+        if (sidebarPinned && sidebar) {
+            sidebar.classList.add('sidebar-pinned');
+            sidebar.classList.remove('sidebar-collapsed');
+            if (adminLayout) adminLayout.classList.add('sidebar-pinned');
+        }
 
         function openSidebar() {
-            sidebar.classList.add('open');
-            sidebarOverlay.classList.add('active');
+            if (sidebar) sidebar.classList.add('open');
+            if (sidebarOverlay) sidebarOverlay.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
 
         function closeSidebar() {
-            sidebar.classList.remove('open');
-            sidebarOverlay.classList.remove('active');
+            if (sidebar) sidebar.classList.remove('open');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('active');
             document.body.style.overflow = '';
         }
 
-        sidebarToggle.addEventListener('click', openSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
+        if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
+        if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+        // Pin/unpin sidebar
+        if (sidebarPinBtn) {
+            sidebarPinBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var isPinned = sidebar.classList.contains('sidebar-pinned');
+                if (isPinned) {
+                    sidebar.classList.remove('sidebar-pinned');
+                    sidebar.classList.add('sidebar-collapsed');
+                    if (adminLayout) adminLayout.classList.remove('sidebar-pinned');
+                    localStorage.setItem('leadform_sidebar_pinned', 'false');
+                } else {
+                    sidebar.classList.add('sidebar-pinned');
+                    sidebar.classList.remove('sidebar-collapsed');
+                    if (adminLayout) adminLayout.classList.add('sidebar-pinned');
+                    localStorage.setItem('leadform_sidebar_pinned', 'true');
+                }
+            });
+        }
 
         // User dropdown toggle
         var userDropdown = document.getElementById('userDropdown');
-        userDropdown.querySelector('button').addEventListener('click', function(e) {
-            e.stopPropagation();
-            userDropdown.classList.toggle('open');
-        });
+        if (userDropdown) {
+            userDropdown.querySelector('button').addEventListener('click', function(e) {
+                e.stopPropagation();
+                userDropdown.classList.toggle('open');
+            });
+        }
 
         document.addEventListener('click', function() {
-            userDropdown.classList.remove('open');
+            if (userDropdown) userDropdown.classList.remove('open');
         });
 
         // Auto-dismiss toasts
@@ -242,7 +273,8 @@ $storagePercent = $storageLimit > 0 ? min(100, round(($storageUsed / $storageLim
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
-                document.getElementById('clientSearch').focus();
+                var s = document.getElementById('clientSearch');
+                if (s) s.focus();
             }
         });
     })();
